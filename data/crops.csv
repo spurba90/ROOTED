@@ -1,0 +1,6 @@
+crop_id,crop_name,crop_family,crop_type,planting_season,harvest_season
+corn,Corn,Poaceae,cash,spring,fall
+soybean,Soybeans,Fabaceae,cash,spring,fall
+oats,Oats,Poaceae,cash,sprng,summer
+winter_wheat,Winter Wheat,Poaceae,cash,fall,summer
+cereal_rye,Cereal Rye,Poaceae,cover,fall,spring
