@@ -3,27 +3,30 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# --------------------------------------------------
-# PAGE CONFIGURATION
-# --------------------------------------------------
+# ==================================================
+# ROOTED - THE FARM THAT REMEMBERS
+# Application / UI
+# Demonstration Area: Ames, Iowa
+# ==================================================
 
+# PAGE CONFIGURATION
 st.set_page_config(
     page_title="ROOTED | The Farm That Remembers",
     page_icon="🌱",
     layout="wide"
 )
 
-# --------------------------------------------------
+# ==================================================
 # DEMONSTRATION LOCATION
-# --------------------------------------------------
+# ==================================================
 
 LOCATION = "Ames, Iowa"
 COUNTY = "Story County"
 
-# --------------------------------------------------
+# ==================================================
 # MOCK CLIMATE DATA
-# Illustrative values only - not NASA observations
-# --------------------------------------------------
+# Illustrative values only - NOT NASA observations
+# ==================================================
 
 climate_data = pd.DataFrame({
     "Month": [
@@ -44,9 +47,9 @@ climate_data = pd.DataFrame({
     ]
 })
 
-# --------------------------------------------------
+# ==================================================
 # HEADER
-# --------------------------------------------------
+# ==================================================
 
 st.title("🌱 ROOTED")
 st.subheader("The Farm That Remembers")
@@ -58,9 +61,9 @@ st.write(
 
 st.divider()
 
-# --------------------------------------------------
+# ==================================================
 # SIDEBAR NAVIGATION
-# --------------------------------------------------
+# ==================================================
 
 st.sidebar.title("🌱 ROOTED Navigation")
 
@@ -75,31 +78,33 @@ page = st.sidebar.radio(
 )
 
 st.sidebar.divider()
+
 st.sidebar.caption("Demonstration Area")
 st.sidebar.write("📍 Ames, Iowa")
 st.sidebar.write("Story County")
 
-# --------------------------------------------------
-# FARM PROFILE
-# --------------------------------------------------
+# ==================================================
+# PAGE 1: FARM PROFILE
+# ==================================================
 
 if page == "Farm Profile":
 
     st.title("🌾 Farm Profile")
 
     st.write(
-        "Tell ROOTED about your farm so we can "
-        "identify suitable crop rotations and evaluate "
-        "climate risks."
+        "Tell ROOTED about your farm so we can identify "
+        "suitable crop rotations and evaluate climate risks."
     )
 
     st.divider()
 
+    # FARM LOCATION
     st.subheader("📍 Farm Location")
 
     col1, col2 = st.columns(2)
 
     with col1:
+
         st.text_input(
             "City",
             value="Ames",
@@ -113,6 +118,7 @@ if page == "Farm Profile":
         )
 
     with col2:
+
         farm_name = st.text_input(
             "Farm Name (optional)",
             placeholder="Enter your farm name"
@@ -127,6 +133,7 @@ if page == "Farm Profile":
 
     st.divider()
 
+    # SOIL INFORMATION
     st.subheader("🌱 Soil Information")
 
     soil_type = st.selectbox(
@@ -144,6 +151,7 @@ if page == "Farm Profile":
 
     st.divider()
 
+    # PREVIOUS CROP
     st.subheader("🚜 Previous Crop History")
 
     previous_crop = st.selectbox(
@@ -161,6 +169,7 @@ if page == "Farm Profile":
 
     st.divider()
 
+    # IRRIGATION
     st.subheader("💧 Irrigation Availability")
 
     irrigation = st.radio(
@@ -171,17 +180,30 @@ if page == "Farm Profile":
 
     st.divider()
 
+    # FARMING PRIORITIES
     st.subheader("🎯 Farming Priorities")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        priority_yield = st.checkbox("Maximize crop yield")
-        priority_soil = st.checkbox("Improve soil health")
+
+        priority_yield = st.checkbox(
+            "Maximize crop yield"
+        )
+
+        priority_soil = st.checkbox(
+            "Improve soil health"
+        )
 
     with col2:
-        priority_climate = st.checkbox("Reduce climate risk")
-        priority_cost = st.checkbox("Reduce input costs")
+
+        priority_climate = st.checkbox(
+            "Reduce climate risk"
+        )
+
+        priority_cost = st.checkbox(
+            "Reduce input costs"
+        )
 
     priorities = []
 
@@ -199,7 +221,11 @@ if page == "Farm Profile":
 
     st.divider()
 
-    if st.button("Save Farm Profile", type="primary"):
+    # SAVE FARM PROFILE
+    if st.button(
+        "Save Farm Profile",
+        type="primary"
+    ):
 
         st.session_state["farm_profile"] = {
             "farm_name": farm_name,
@@ -212,17 +238,23 @@ if page == "Farm Profile":
             "priorities": priorities
         }
 
-        st.success("Your farm profile has been saved!")
+        st.success(
+            "Your farm profile has been saved!"
+        )
 
+    # DISPLAY SAVED PROFILE
     if "farm_profile" in st.session_state:
 
         st.subheader("Your Saved Farm Profile")
-        st.json(st.session_state["farm_profile"])
+
+        st.json(
+            st.session_state["farm_profile"]
+        )
 
 
-# --------------------------------------------------
-# FARM MEMORY
-# --------------------------------------------------
+# ==================================================
+# PAGE 2: FARM MEMORY
+# ==================================================
 
 elif page == "Farm Memory":
 
@@ -238,8 +270,8 @@ elif page == "Farm Memory":
     )
 
     st.warning(
-        "Prototype data: The charts below use illustrative "
-        "mock values. They are not actual NASA observations."
+        "Prototype data: The climate values shown here "
+        "are illustrative mock values, not actual NASA observations."
     )
 
     st.divider()
@@ -247,30 +279,41 @@ elif page == "Farm Memory":
     st.subheader("📅 Climate Overview")
 
     st.write(
-        "The following charts demonstrate how ROOTED will "
-        "display historical climate information once the "
-        "NASA data connection is integrated."
+        "Explore monthly temperature, precipitation, "
+        "and reference evapotranspiration patterns."
     )
 
-    # Summary metrics
+    # CLIMATE SUMMARY METRICS
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        avg_temp = climate_data["Temperature (°C)"].mean()
+
+        avg_temp = climate_data[
+            "Temperature (°C)"
+        ].mean()
+
         st.metric(
             "Average Monthly Temperature",
             f"{avg_temp:.1f} °C"
         )
 
     with col2:
-        total_rain = climate_data["Precipitation (mm)"].sum()
+
+        total_rain = climate_data[
+            "Precipitation (mm)"
+        ].sum()
+
         st.metric(
             "Illustrative Annual Precipitation",
             f"{total_rain:.0f} mm"
         )
 
     with col3:
-        total_et = climate_data["Reference ET₀ (mm)"].sum()
+
+        total_et = climate_data[
+            "Reference ET₀ (mm)"
+        ].sum()
+
         st.metric(
             "Illustrative Annual ET₀",
             f"{total_et:.0f} mm"
@@ -278,76 +321,40 @@ elif page == "Farm Memory":
 
     st.divider()
 
-    # Temperature chart
-    st.subheader("🌡️ Monthly Average Temperature")
+    # INTERACTIVE CLIMATE EXPLORER
+    st.subheader("📊 Explore Climate Patterns")
 
-    temp_chart = px.line(
+    metric = st.selectbox(
+        "Choose a climate variable",
+        [
+            "Temperature (°C)",
+            "Precipitation (mm)",
+            "Reference ET₀ (mm)"
+        ]
+    )
+
+    chart = px.line(
         climate_data,
         x="Month",
-        y="Temperature (°C)",
+        y=metric,
         markers=True,
-        title="Illustrative Monthly Temperature Pattern"
+        title=f"Monthly {metric} — Ames, Iowa"
     )
 
-    temp_chart.update_layout(
+    chart.update_layout(
         xaxis_title="Month",
-        yaxis_title="Temperature (°C)"
+        yaxis_title=metric
     )
 
     st.plotly_chart(
-        temp_chart,
+        chart,
         use_container_width=True
     )
 
     st.divider()
 
-    # Precipitation chart
-    st.subheader("🌧️ Monthly Precipitation")
-
-    rain_chart = px.bar(
-        climate_data,
-        x="Month",
-        y="Precipitation (mm)",
-        title="Illustrative Monthly Precipitation"
-    )
-
-    rain_chart.update_layout(
-        xaxis_title="Month",
-        yaxis_title="Precipitation (mm)"
-    )
-
-    st.plotly_chart(
-        rain_chart,
-        use_container_width=True
-    )
-
-    st.divider()
-
-    # Reference ET chart
-    st.subheader("💧 Reference Evapotranspiration (ET₀)")
-
-    et_chart = px.line(
-        climate_data,
-        x="Month",
-        y="Reference ET₀ (mm)",
-        markers=True,
-        title="Illustrative Monthly Reference ET₀"
-    )
-
-    et_chart.update_layout(
-        xaxis_title="Month",
-        yaxis_title="Reference ET₀ (mm)"
-    )
-
-    st.plotly_chart(
-        et_chart,
-        use_container_width=True
-    )
-
-    st.divider()
-
-    # Climate data table
-    st.subheader("📊 Climate Data Table")
+    # CLIMATE DATA TABLE
+    st.subheader("Climate Data Table")
 
     st.dataframe(
         climate_data,
@@ -355,35 +362,211 @@ elif page == "Farm Memory":
         hide_index=True
     )
 
+    # CSV DOWNLOAD
+    csv_data = climate_data.to_csv(
+        index=False
+    )
 
-# --------------------------------------------------
-# ROTATION ADVISOR PLACEHOLDER
-# --------------------------------------------------
+    st.download_button(
+        label="Download Climate Data (CSV)",
+        data=csv_data,
+        file_name="ames_iowa_mock_climate_data.csv",
+        mime="text/csv"
+    )
+
+    st.caption(
+        "Source: ROOTED prototype mock dataset. "
+        "NASA data integration is pending."
+    )
+
+
+# ==================================================
+# PAGE 3: ROTATION ADVISOR
+# ==================================================
 
 elif page == "Rotation Advisor":
 
     st.title("🌽 Rotation Advisor")
 
     st.write(
-        "ROOTED will compare feasible three-year crop "
-        "rotations using your farm profile and climate data."
+        "Compare possible three-year crop rotations "
+        "for your farm in Ames, Iowa."
     )
 
-    st.info(
-        "Crop rotation recommendations will be connected "
-        "when the recommendation module is ready."
-    )
+    # CHECK FOR SAVED FARM PROFILE
+    if "farm_profile" not in st.session_state:
 
-    if "farm_profile" in st.session_state:
-        st.success("Farm profile detected!")
-        st.json(st.session_state["farm_profile"])
+        st.warning(
+            "Please complete and save your Farm Profile first."
+        )
+
     else:
-        st.warning("Please save your Farm Profile first.")
+
+        profile = st.session_state["farm_profile"]
+
+        st.success(
+            f"Using your saved profile: "
+            f"{profile['field_acres']} acres in "
+            f"{profile['county']}"
+        )
+
+        st.caption(
+            "The rotations below are illustrative examples. "
+            "Final feasibility and rankings will come from "
+            "the crop recommendation rules."
+        )
+
+        # SAMPLE ROTATION OPTIONS
+        rotations = [
+
+            {
+                "name": "Rotation A",
+                "crops": [
+                    "Corn",
+                    "Soybeans",
+                    "Oats"
+                ],
+                "focus": "Crop diversity",
+                "benefits": [
+                    "Includes three different crops",
+                    "Provides a break from continuous corn"
+                ],
+                "tradeoffs": [
+                    "Requires planning for different crop needs"
+                ]
+            },
+
+            {
+                "name": "Rotation B",
+                "crops": [
+                    "Soybeans",
+                    "Corn",
+                    "Soybeans"
+                ],
+                "focus": "Corn-soybean system",
+                "benefits": [
+                    "Uses familiar Iowa crop options",
+                    "Includes a crop break before corn"
+                ],
+                "tradeoffs": [
+                    "Less crop diversity than a three-crop rotation"
+                ]
+            },
+
+            {
+                "name": "Rotation C",
+                "crops": [
+                    "Oats",
+                    "Corn",
+                    "Soybeans"
+                ],
+                "focus": "Diversified sequence",
+                "benefits": [
+                    "Introduces a small-grain crop",
+                    "Offers a different crop sequence"
+                ],
+                "tradeoffs": [
+                    "May require different equipment or market planning"
+                ]
+            }
+        ]
+
+        st.divider()
+
+        st.subheader(
+            "Compare Three-Year Rotations"
+        )
+
+        cols = st.columns(3)
+
+        # DISPLAY ROTATION CARDS
+        for i, rotation in enumerate(rotations):
+
+            with cols[i]:
+
+                with st.container(border=True):
+
+                    st.subheader(
+                        rotation["name"]
+                    )
+
+                    st.caption(
+                        rotation["focus"]
+                    )
+
+                    for year, crop in enumerate(
+                        rotation["crops"],
+                        start=1
+                    ):
+
+                        st.write(
+                            f"**Year {year}:** {crop}"
+                        )
+
+                    st.divider()
+
+                    st.markdown(
+                        "**Potential benefits**"
+                    )
+
+                    for benefit in rotation["benefits"]:
+
+                        st.write(
+                            f"✓ {benefit}"
+                        )
+
+                    st.markdown(
+                        "**Trade-offs to consider**"
+                    )
+
+                    for tradeoff in rotation["tradeoffs"]:
+
+                        st.write(
+                            f"• {tradeoff}"
+                        )
+
+        st.divider()
+
+        # FARM PROFILE SUMMARY
+        st.subheader(
+            "Farm Profile Used"
+        )
+
+        st.write(
+            f"**Previous crop:** {profile['previous_crop']}"
+        )
+
+        st.write(
+            f"**Soil type:** {profile['soil_type']}"
+        )
+
+        st.write(
+            f"**Irrigation:** {profile['irrigation']}"
+        )
+
+        if profile["priorities"]:
+
+            st.write(
+                "**Farmer priorities:** "
+                + ", ".join(profile["priorities"])
+            )
+
+        else:
+
+            st.write(
+                "No farming priorities selected yet."
+            )
+
+        st.info(
+            "These example rotations are not yet scored or "
+            "validated against the farm's soil and climate. "
+            "The recommendation engine will be integrated next."
+        )
 
 
-# --------------------------------------------------
-# CLIMATE REPLAY PLACEHOLDER
-# --------------------------------------------------
+# ==================================================
+# PAGE 4: CLIMATE REPLAY
+# ==================================================
 
 elif page == "Climate Replay":
 
@@ -399,3 +582,27 @@ elif page == "Climate Replay":
         "added in the next development stage."
     )
 
+    st.write(
+        "Future functionality will include:"
+    )
+
+    st.markdown(
+        """
+        - Historical dry-year scenarios
+        - Typical climate-year scenarios
+        - Historical wet-year scenarios
+        - Crop rotation comparison under different conditions
+        - Changes in recommendation rankings
+        """
+    )
+
+# ==================================================
+# FOOTER
+# ==================================================
+
+st.divider()
+
+st.caption(
+    "ROOTED | The Farm That Remembers | "
+    "Ames, Iowa Demonstration Prototype"
+)
