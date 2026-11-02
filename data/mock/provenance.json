@@ -1,0 +1,38 @@
+[
+  {
+    "variable": "Temperature",
+    "definition": "Mean air temperature at 2 m",
+    "units": "°C",
+    "resolution": "Annual mean (sample)",
+    "source": "SAMPLE – synthetic",
+    "access_date": "n/a",
+    "transformations": "None"
+  },
+  {
+    "variable": "Precipitation",
+    "definition": "Total precipitation",
+    "units": "mm",
+    "resolution": "Annual total (sample)",
+    "source": "SAMPLE – synthetic",
+    "access_date": "n/a",
+    "transformations": "None"
+  },
+  {
+    "variable": "Reference ET",
+    "definition": "Reference evapotranspiration (exact POWER parameter to be confirmed)",
+    "units": "mm",
+    "resolution": "Annual total (sample)",
+    "source": "SAMPLE – synthetic",
+    "access_date": "n/a",
+    "transformations": "None"
+  },
+  {
+    "variable": "P − reference ET",
+    "definition": "Simplified climate water-balance indicator; NOT soil moisture or irrigation need",
+    "units": "mm",
+    "resolution": "Same as inputs",
+    "source": "Computed",
+    "access_date": "n/a",
+    "transformations": "precip − ref ET"
+  }
+]

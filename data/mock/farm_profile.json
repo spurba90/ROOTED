@@ -1,0 +1,31 @@
+{
+  "farm_id": "IA-AMES-01",
+  "farm_name": "",
+  "location": "Ames, Iowa",
+  "county": "Story County",
+  "lat": 42.03,
+  "lon": -93.62,
+  "acres": 160,
+  "soil": "Silt loam",
+  "drainage": "Moderately well drained",
+  "soil_notes": "",
+  "crop_history": [
+    "Soybeans",
+    "Corn",
+    "Soybeans"
+  ],
+  "allowed": [
+    "Corn",
+    "Soybeans",
+    "Oats",
+    "Alfalfa"
+  ],
+  "irrigation": "Rain-fed",
+  "cover_crop_ok": true,
+  "equipment": "No special constraints",
+  "weights": {
+    "soil": 6,
+    "water": 5,
+    "resilience": 5
+  }
+}

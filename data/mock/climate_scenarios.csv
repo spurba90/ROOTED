@@ -1,0 +1,4 @@
+farm_id,scenario,label,growing_season,precip_mm,ref_et_mm,mean_temp_c,description
+IA-AMES-01,typical,Typical,May-Sep,520,600,19.8,Near the historical median growing season.
+IA-AMES-01,dry,Dry,May-Sep,360,660,21.0,"Historical dry-year stress test: low rainfall, high reference ET."
+IA-AMES-01,wet,Wet,May-Sep,700,560,18.9,"Historical wet-year stress test: high rainfall, possible field-access limits."

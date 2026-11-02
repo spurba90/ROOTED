@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 210">
+<rect width="320" height="210" fill="none"/>
+<g fill="#8bc541"><path d="M160 115C104 34 165 12 207 8c-2 54-22 91-47 107Z"/><path d="M147 118C90 58 49 67 18 97c42 32 87 38 129 21Z"/><path d="M173 119c43-47 89-44 129-18-40 35-85 43-129 18Z"/></g>
+<path d="M160 120V61M145 118c-38-20-75-16-112 3M175 118c38-18 78-14 111 2" stroke="#d9f0a4" stroke-width="6" fill="none" stroke-linecap="round"/>
+<text x="160" y="169" text-anchor="middle" font-family="Arial,sans-serif" font-size="43" font-weight="bold" letter-spacing="3" fill="white">ROOTED</text>
+<text x="160" y="194" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-style="italic" fill="white">The Farm That Remembers</text>
+</svg>
