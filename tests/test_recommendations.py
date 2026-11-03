@@ -4,11 +4,17 @@ import pytest
 
 from src.recommendations.crop_data import load_crops
 from src.recommendations.crop_rules import validate_rotation, validate_cover_crop
-from src.recommendations.rotation_generator import create_cover_crop_practice
 from src.recommendations.rotation_generator import (
     create_cover_crop_practice,
     generate_rotations,
 )
+from src.recommendations.scoring import (
+    calculate_rotation_indicators,
+    calculate_baseline_components,
+    normalize_priority_weights,
+    prepare_soil_factors,
+)
+
 
 def test_duplicate_crop_ids(tmp_path):
     test_file = tmp_path / "test_crops.csv"
@@ -257,3 +263,179 @@ def test_all_generated_rotations_are_valid():
 
     for rotation in rotations:
         assert validate_rotation(rotation, crops) is True
+
+
+def test_rotation_indicators_diverse_rotation():
+    crops = load_crops()
+
+    result = calculate_rotation_indicators(
+        ("corn", "soybean", "oats"),
+        crops
+    )
+
+    assert result["unique_crop_count"] == 3
+    assert result["unique_family_count"] == 2
+    assert result["adjacent_repeat_count"] == 0
+    assert result["same_family_transition_count"] == 0
+    assert result["cover_crop_present"] is False
+
+
+def test_rotation_indicators_detect_repetition():
+    crops = load_crops()
+
+    result = calculate_rotation_indicators(
+        ("corn", "corn", "soybean"),
+        crops
+    )
+
+    assert result["unique_crop_count"] == 2
+    assert result["unique_family_count"] == 2
+    assert result["adjacent_repeat_count"] == 1
+
+
+def test_rotation_indicators_detect_cover_crop():
+    crops = load_crops()
+
+    cover_crop_practice = {
+        "cover_crop_id": "cereal_rye",
+        "after_year": 1,
+        "before_year": 2,
+        "feasibility_status": "not_evaluated"
+    }
+
+    result = calculate_rotation_indicators(
+        ("corn", "soybean", "oats"),
+        crops,
+        cover_crop_practice
+    )
+
+    assert result["cover_crop_present"] is True
+
+
+def test_rotation_indicators_detect_same_family_transition():
+    crops = load_crops()
+
+    result = calculate_rotation_indicators(
+        ("corn", "oats", "soybean"),
+        crops
+    )
+
+    assert result["same_family_transition_count"] == 1
+
+def test_baseline_components_diverse_rotation():
+    indicators = {
+        "unique_crop_count": 3,
+        "adjacent_repeat_count": 0,
+    }
+
+    result = calculate_baseline_components(indicators)
+
+    assert result["crop_diversity"] == 1.0
+    assert result["repeat_avoidance"] == 1.0
+
+
+def test_baseline_components_repeated_crop():
+    indicators = {
+        "unique_crop_count": 2,
+        "adjacent_repeat_count": 1,
+    }
+
+    result = calculate_baseline_components(indicators)
+
+    assert result["crop_diversity"] == pytest.approx(2 / 3)
+    assert result["repeat_avoidance"] == 0.5
+
+def test_normalize_priority_weights():
+    priorities = {
+        "soil_protection": 5,
+        "water_suitability": 3,
+        "climate_resilience": 2,
+    }
+
+    result = normalize_priority_weights(priorities)
+
+    assert result["soil_protection"] == 0.5
+    assert result["water_suitability"] == 0.3
+    assert result["climate_resilience"] == 0.2
+    assert sum(result.values()) == pytest.approx(1.0)
+
+
+def test_normalize_equal_priority_weights():
+    priorities = {
+        "soil_protection": 1,
+        "water_suitability": 1,
+        "climate_resilience": 1,
+    }
+
+    result = normalize_priority_weights(priorities)
+
+    assert result["soil_protection"] == pytest.approx(1 / 3)
+    assert result["water_suitability"] == pytest.approx(1 / 3)
+    assert result["climate_resilience"] == pytest.approx(1 / 3)
+
+
+def test_priority_weights_reject_negative_values():
+    priorities = {
+        "soil_protection": 1,
+        "water_suitability": -1,
+    }
+
+    with pytest.raises(ValueError, match="cannot be negative"):
+        normalize_priority_weights(priorities)
+
+
+def test_priority_weights_reject_all_zero():
+    priorities = {
+        "soil_protection": 0,
+        "water_suitability": 0,
+        "climate_resilience": 0,
+    }
+
+    with pytest.raises(ValueError, match="greater than zero"):
+        normalize_priority_weights(priorities)
+
+
+def test_prepare_soil_factors_all_missing():
+    farm = {
+        "soil": {
+            "texture": None,
+            "ph": None,
+            "organic_matter_pct": None,
+            "drainage_class": None,
+            "available_water_capacity": None,
+        }
+    }
+
+    result = prepare_soil_factors(farm)
+
+    assert result["soil_data_available"] is False
+    assert result["available_fields"] == []
+    assert len(result["missing_fields"]) == 5
+
+
+def test_prepare_soil_factors_partial_data():
+    farm = {
+        "soil": {
+            "texture": "loam",
+            "ph": None,
+            "organic_matter_pct": None,
+            "drainage_class": None,
+            "available_water_capacity": None,
+        }
+    }
+
+    result = prepare_soil_factors(farm)
+
+    assert result["soil_data_available"] is True
+    assert result["values"]["texture"] == "loam"
+    assert "texture" in result["available_fields"]
+    assert "ph" in result["missing_fields"]
+
+
+def test_prepare_soil_factors_without_soil_section():
+    farm = {}
+
+    result = prepare_soil_factors(farm)
+
+    assert result["soil_data_available"] is False
+    assert len(result["missing_fields"]) == 5
