@@ -1,4 +1,16 @@
+<<<<<<< HEAD
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .DS_Store
+=======
+# Python virtual environment
+.venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# macOS system files
+.DS_Store
+>>>>>>> origin/feature/climate-data
