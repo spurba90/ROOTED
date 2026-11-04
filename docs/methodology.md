@@ -425,6 +425,32 @@ These tests verify software behavior and structural consistency.
 They do not validate agricultural feasibility or the accuracy of future recommendation scores.
 
 ---
+### Drought-Resilience Ranking
+
+For historical dry-scenario comparison, ROOTED uses a simple ordinal
+drought-resilience ranking for the four demonstration cash crops.
+
+The ranking is based on qualitative extension evidence describing crop
+responses to moisture stress. The values are relative rank positions,
+not measured drought-tolerance coefficients, yield-loss estimates, or
+predicted agronomic outcomes.
+
+Current ranking:
+
+1. Corn
+2. Soybean
+3. Oats
+4. Winter wheat
+
+Higher values indicate greater relative drought resilience within the
+limited demonstration crop set.
+
+The dry-scenario ranking is used only as a transparent decision-support
+heuristic. It does not replace field-specific agronomic assessment.
+
+Wet scenarios are not currently assigned crop-specific excess-moisture
+scores because seasonal precipitation totals do not establish flooding,
+waterlogging, soil saturation, or drainage conditions.
 
 ## 10. Current Limitations
 

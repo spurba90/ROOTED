@@ -66,23 +66,49 @@ def load_crops(path="data/crops.csv"):
 
     return crops
 
-'''Code Notes:
-Here we are loading our crop info from crops.csv and checking that the columns have the correct columns and data.
-Returns and list of dictionaries representing one crop and its characteristics.
+def load_crop_climate_traits(
+    path="data/crop_climate_traits.csv"
+):
+    """
+    Load documented crop climate traits used by the
+    recommendation engine.
 
-Later on, our recommendation engine will use this info to identify available crops and build possible rotations. 
-When we validate data here it helps us catch any formatting issues before they cause problems. 
+    The loader does not create or modify trait values.
+    """
+    traits = {}
 
-Duplicate ID Validation:
--Each crop needs a unique identifier so the recommendation engine can distinguish between different crops.
--We can compare the number of crop IDs with the number of unique IDs using a set.
+    with open(path, newline="") as file:
+        reader = csv.DictReader(file)
 
-If they are different we raise an error.
+        required_columns = {
+            "crop_id",
+            "dry_resilience_rank",
+        }
 
-Crop catecory Validation:
--I check that each crop has a supported crop type and valid planting/harvest season labels.
--Prevents spelling mistakes or inconsistent values from going into the recomenndation engine.
-These validate data formatting.
+        if set(reader.fieldnames or []) != required_columns:
+            raise ValueError(
+                "Crop climate trait columns do not match expected schema"
+            )
 
+        for row in reader:
+            crop_id = row["crop_id"].strip()
+            rank_value = row["dry_resilience_rank"].strip()
 
-'''
+            if not crop_id:
+                raise ValueError("Missing crop_id in climate traits")
+
+            if not rank_value:
+                raise ValueError(
+                    f"Missing dry resilience rank for '{crop_id}'"
+                )
+
+            if crop_id in traits:
+                raise ValueError(
+                    f"Duplicate climate trait crop ID: {crop_id}"
+                )
+
+            traits[crop_id] = {
+                "dry_resilience_rank": int(rank_value)
+            }
+
+    return traits
