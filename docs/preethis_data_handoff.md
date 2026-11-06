@@ -13,9 +13,15 @@
   - T2M: The mean daily air temperature (in °C)
   - PRECTOTCORR: The corrected daily precipitation (mm/day)
   - EVPTRNS: Evapotranspiration energy flux (MJ/m²/day)
-- USDA NRCS Web Soil Survey:
-  https://websoilsurvey.nrcs.usda.gov/app/
-  Note: Soil measurements have not yet been retrieved.
+- USDA NRCS Soil Data Access:
+  https://sdmdataaccess.sc.egov.usda.gov/
+  - Soil map unit: Clarion loam, Bemis moraine, 2 to 6 percent slopes
+  - Map unit key (MUKEY): 2765537
+  - Dominant component: Clarion (85%)
+  - Component key (COKEY): 28635382
+  - Soil values retrieved from USDA survey records.
+  - These are representative mapped soil estimates,
+    not measurements collected from a specific farm.
 
 ## Files for Integration
 
@@ -49,8 +55,23 @@
 ### Soil
 
 - data/processed/ames_soil_profile.json
-  Structured Iowa demo farm profile.
-  Soil measurements are currently null and unverified.
+  USDA-derived soil profile for the Ames demonstration location.
+
+  Dominant soil component: Clarion (85% of map unit).
+
+  Surface horizon (Ap, 0-23 cm):
+  - Texture: Loam
+  - Soil pH: 6.2
+  - Organic matter: 3.5%
+  - Available water capacity: 0.21 cm/cm
+
+  Component drainage class: Well drained.
+
+  Available water capacity describes soil water storage
+  capacity, not current soil moisture or soil wetness.
+
+  Values represent mapped soil survey estimates rather
+  than direct measurements from an individual farm.
 
 ## Scenario Selection
 
@@ -78,9 +99,15 @@ These are historical examples, not future climate forecasts.
 - Precipitation anomalies are also available as percentages.
 - ET values are energy-flux metrics, not water-depth estimates.
 - Do not directly subtract ET energy from precipitation in mm.
+- Soil properties are now populated using USDA survey estimates.
+- Preserve the existing soil JSON field names for integration.
+- Available water capacity is stored as 0.21 cm/cm for
+  the 0-23 cm surface horizon, not the full soil profile.
+- Available water capacity must not be labeled as current
+  soil moisture or soil wetness.
 - Do not treat missing soil values as zero.
-- Soil-dependent scoring should wait for verified or
-  farmer-provided soil measurements.
+- Soil-dependent scoring should use only properties supported
+  by documented scoring rules; otherwise report limitations.
 
 ## Limitations
 
@@ -91,15 +118,18 @@ These are historical examples, not future climate forecasts.
 3. The typical scenario is selected by precipitation,
    not by all climate variables simultaneously.
 4. Historical scenarios are not forecasts.
-5. Soil attributes have not yet been verified.
+5. Soil properties are USDA mapped survey estimates for the
+   dominant Clarion component, not field-measured values.
 6. Recommendations should clearly identify missing inputs.
 
-## Pending Integration Decision
+## Soil Integration Status
 
-Sim needs to confirm whether soil properties are:
-
-- Retrieved from a verified soil data source, or
-- Provided by the farmer through the application.
-
-Until then, soil-dependent recommendation logic should
-handle missing values safely.
+- USDA soil properties retrieved and added to the soil JSON.
+- The original soil field names have been preserved.
+- Soil data is available on feature/climate-data.
+- Sim should verify that the recommendation engine loads
+  the updated soil profile and handles the values correctly.
+- Dilpreet should display soil properties with their units
+  and source limitations.
+- Any missing or farmer-provided soil inputs must still be
+  handled safely without substituting zero.
