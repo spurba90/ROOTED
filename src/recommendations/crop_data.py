@@ -66,49 +66,60 @@ def load_crops(path="data/crops.csv"):
 
     return crops
 
-def load_crop_climate_traits(
-    path="data/crop_climate_traits.csv"
+
+
+def load_crop_critical_windows(
+    path="data/crop_critical_windows.csv"
 ):
     """
-    Load documented crop climate traits used by the
-    recommendation engine.
+    Load each crop's documented drought-sensitive calendar month.
 
-    The loader does not create or modify trait values.
+    The month is when the crop's most water-sensitive growth stage
+    typically occurs in Iowa. It is a timing assumption with a cited
+    basis, not a measured field observation.
     """
-    traits = {}
+    windows = {}
 
-    with open(path, newline="") as file:
+    with open(path, newline="", encoding="utf-8-sig") as file:
         reader = csv.DictReader(file)
 
-        required_columns = {
-            "crop_id",
-            "dry_resilience_rank",
-        }
+        required_columns = {"crop_id", "critical_month"}
+        missing_columns = required_columns - set(reader.fieldnames or [])
 
-        if set(reader.fieldnames or []) != required_columns:
+        if missing_columns:
             raise ValueError(
-                "Crop climate trait columns do not match expected schema"
+                f"Critical-window file is missing columns: "
+                f"{sorted(missing_columns)}"
             )
 
         for row in reader:
-            crop_id = row["crop_id"].strip()
-            rank_value = row["dry_resilience_rank"].strip()
+            crop_id = (row["crop_id"] or "").strip()
+            month_value = (row["critical_month"] or "").strip()
 
             if not crop_id:
-                raise ValueError("Missing crop_id in climate traits")
+                raise ValueError("Missing crop_id in critical windows")
 
-            if not rank_value:
+            if not month_value:
                 raise ValueError(
-                    f"Missing dry resilience rank for '{crop_id}'"
+                    f"Missing critical month for '{crop_id}'"
                 )
 
-            if crop_id in traits:
+            if crop_id in windows:
                 raise ValueError(
-                    f"Duplicate climate trait crop ID: {crop_id}"
+                    f"Duplicate critical-window crop ID: {crop_id}"
                 )
 
-            traits[crop_id] = {
-                "dry_resilience_rank": int(rank_value)
+            month = int(month_value)
+
+            if not 1 <= month <= 12:
+                raise ValueError(
+                    f"Invalid critical month for '{crop_id}': {month}"
+                )
+
+            windows[crop_id] = {
+                "critical_month": month,
+                "critical_stage": (row.get("critical_stage") or "").strip(),
+                "source_url": (row.get("source_url") or "").strip(),
             }
 
-    return traits
+    return windows

@@ -1,0 +1,5 @@
+crop_id,critical_month,critical_stage,timing_basis,source_url
+corn,7,late vegetative through blister (incl. silking and pollination),ISU stage guidance; July is the typical Iowa calendar month (assumption),https://crops.extension.iastate.edu/cropnews/2017/07/influence-drought-corn-and-soybean
+soybean,8,early pod set through mid seed fill,ISU stage guidance; August is the typical Iowa calendar month (assumption),https://crops.extension.iastate.edu/cropnews/2017/07/influence-drought-corn-and-soybean
+oats,6,heading and grain fill,typical Iowa timing (assumption; cite USDA NASS Iowa crop progress oats headed dates),
+winter_wheat,6,heading and grain fill,typical Iowa timing (assumption; needs Iowa source),

@@ -73,12 +73,14 @@ Cereal rye can provide winter soil cover and may help:
 
 However, its successful use depends on establishment timing, termination timing, the following cash crop, and available management practices.
 
-ROOTED must not assume cereal rye is appropriate between every pair of cash crops.
+ROOTED does not assume cereal rye is appropriate between every pair of cash crops (see Section 4).
 
-**Source:**
+**Sources:**
 
 - USDA NRCS — Cereal Rye Cover Crop Fact Sheet:  
   https://www.nrcs.usda.gov/sites/default/files/2024-03/Cereal%20Rye%20Cover%20Crop%20Fact%20Sheet_0.pdf
+- Farm Progress — "Cereal rye cover crop could negatively affect corn" (reports Iowa State University guidance on terminating rye before corn):  
+  https://www.farmprogress.com/crops/cereal-rye-cover-crop-could-negatively-affect-corn
 
 ### 1.4 Initial Crop Reference Table
 
@@ -103,17 +105,18 @@ The table corresponds to the crop records stored in `data/crops.csv`.
 | USDA NASS | Iowa Agricultural Overview | Iowa crop production and crop-selection context |
 | USDA PLANTS | PLANTS Database | Botanical names and crop families |
 | Iowa State University Extension | Integrated Crop Management | Crop production and growing-season considerations |
+| Iowa State University Extension | "Influence of drought on corn and soybean" | Drought-sensitive growth stages of corn and soybean |
 | USDA NRCS | Cereal Rye Cover Crop Fact Sheet | Cover-crop benefits, risks, and management considerations |
+| Farm Progress (reporting Iowa State guidance) | "Cereal rye cover crop could negatively affect corn" | Terminating cereal rye before corn |
+| NASA POWER | Daily API | Historical precipitation for Ames, 2005–2025 |
 
-These are authoritative institutional sources. However, some references currently point to general resource pages rather than individual crop-specific publications.
-
-Before finalizing the scientific documentation, ROOTED should verify each crop-specific claim against an identifiable publication or database record and record its publication date where available.
+Some of these references point to general resource pages rather than individual crop-specific publications. Before final submission, each crop-specific claim should be checked against an identifiable publication or database record, with its publication date where available.
 
 ---
 
 ## 2. Crop Growing Seasons
 
-ROOTED currently represents planting and harvest periods using broad seasonal categories.
+ROOTED represents planting and harvest periods using broad seasonal categories.
 
 These descriptions help organize candidate crop sequences but are not sufficient to establish agricultural feasibility.
 
@@ -136,13 +139,11 @@ Actual planting and harvest windows depend on:
 - Farm management decisions.
 - Timing of preceding and following crops.
 
-Winter wheat and cereal rye require particular attention because their growing periods extend across calendar years.
+Winter wheat and cereal rye require particular attention because their growing periods extend across calendar years. For example, winter wheat planted in fall may occupy a field until the following summer.
 
-For example, winter wheat planted in fall may occupy a field until the following summer.
+Consequently, a three-entry crop sequence is not a verified three-calendar-year planting schedule.
 
-Consequently, a three-entry crop sequence cannot automatically be interpreted as a verified three-calendar-year planting schedule.
-
-ROOTED must evaluate crop timing separately before classifying a sequence as agriculturally feasible.
+The engine uses the planting-season category in one place: no cereal-rye cover-crop slot is offered directly before winter wheat, because both would need the same fall planting window (Section 4.3). Exact dates are not modeled.
 
 **Sources:**
 
@@ -150,6 +151,24 @@ ROOTED must evaluate crop timing separately before classifying a sequence as agr
   https://crops.extension.iastate.edu/
 - USDA NRCS — Cereal Rye Cover Crop Fact Sheet:  
   https://www.nrcs.usda.gov/sites/default/files/2024-03/Cereal%20Rye%20Cover%20Crop%20Fact%20Sheet_0.pdf
+
+### 2.2 Drought-Sensitive Months
+
+For climate scoring, each cash crop is assigned one drought-sensitive calendar month, stored in `data/crop_critical_windows.csv`.
+
+| Crop | Month | Growth stage | Evidence status |
+|---|---|---|---|
+| Corn | July | Late vegetative through blister, including silking and pollination | Growth stage cited (Iowa State Extension, "Influence of drought on corn and soybean"). July is a typical-calendar assumption. |
+| Soybean | August | Early pod set through mid seed fill | Growth stage cited (same source). August is a typical-calendar assumption. |
+| Oats | June | Heading and grain fill | **Assumption — citation needed.** Candidate source: USDA NASS Iowa Crop Progress reports (oat heading dates). |
+| Winter wheat | June | Heading and grain fill | **Assumption — Iowa-specific citation needed.** |
+
+These are typical-season timing assumptions, not field observations. Actual timing varies with planting date, variety, and weather.
+
+**Source:**
+
+- Iowa State University Extension — "Influence of drought on corn and soybean" (Integrated Crop Management, July 2017):  
+  https://crops.extension.iastate.edu/cropnews/2017/07/influence-drought-corn-and-soybean
 
 ---
 
@@ -161,14 +180,14 @@ ROOTED distinguishes between:
 
 1. **Candidate generation:** Producing possible cash-crop sequences.
 2. **Structural validation:** Checking whether a sequence follows the application's data rules.
-3. **Agricultural feasibility:** Determining whether a sequence can realistically be implemented on a particular farm.
-4. **Rotation evaluation:** Comparing feasible alternatives using documented indicators and farmer priorities.
+3. **Rotation evaluation:** Comparing candidates using documented indicators and farmer priorities.
+4. **Agricultural feasibility:** Determining whether a sequence can realistically be implemented on a particular farm.
 
-A generated crop sequence is not automatically a feasible or recommended rotation.
+Steps 1–3 are implemented. Step 4 is not: a generated or highly ranked sequence is not a confirmed feasible rotation.
 
 ### 3.2 Structural Rules
 
-ROOTED currently enforces the following structural rules:
+ROOTED enforces the following structural rules:
 
 - A three-entry rotation must contain exactly three cash-crop identifiers.
 - Every crop must exist in the validated crop database.
@@ -176,19 +195,13 @@ ROOTED currently enforces the following structural rules:
 - Repeated cash crops are permitted during candidate generation.
 - Optional cover-crop practices are represented separately from cash-crop sequences.
 
-The structural validation logic is implemented in:
+The structural validation logic is implemented in `src/recommendations/crop_rules.py`. Candidate generation is implemented in `src/recommendations/rotation_generator.py`.
 
-`src/recommendations/crop_rules.py`
+With four cash crops and three positions, ROOTED generates **4 × 4 × 4 = 64 candidate sequences**.
 
-The candidate-generation logic is implemented in:
+Each sequence is treated as a repeating three-year cycle, so the transition from year 3 back to year 1 is counted. Sequences that are the same cycle started in a different year are grouped, giving **24 distinct cycles**.
 
-`src/recommendations/rotation_generator.py`
-
-With four cash crops and three positions, ROOTED generates:
-
-**4 × 4 × 4 = 64 candidate sequences**
-
-These sequences are not confirmed agricultural recommendations.
+Repeated crops stay in the full ranking but are left off recommendation cards.
 
 ### 3.3 Farm-Specific Constraints
 
@@ -206,36 +219,28 @@ The following factors require additional information before agricultural feasibi
 
 These factors should be evaluated using actual farm information and appropriately sourced agricultural guidance.
 
-### 3.4 Agronomic Considerations
+### 3.4 Rotation Indicators Used in Scoring
 
-ROOTED may eventually compare rotations using indicators related to:
+ROOTED compares rotations using three structural indicators and one climate indicator. Full formulas are in `docs/methodology.md`, Section 8.
 
-- Crop diversity.
-- Crop-family diversity.
-- Seasonal soil cover.
-- Potential cover-crop opportunities.
-- Climate-related exposure.
-- Farmer management constraints.
+| Indicator | What it counts | Evidence status |
+|---|---|---|
+| Crop diversity | Number of different cash crops | Descriptive count |
+| Repeat avoidance | Same crop in consecutive years (including year 3 → year 1) | Descriptive count |
+| Family alternation | Same plant family in consecutive years (grass vs legume) | Descriptive count; families from USDA PLANTS |
+| Critical-window dry exposure | Crop-years whose drought-sensitive month was in the driest quarter of 2005–2025 in the scenario year | Uses NASA POWER rainfall (Section 5) and the timing assumptions in Section 2.2 |
 
-However, these characteristics must not automatically be interpreted as measured improvements in soil health, crop yield, or profitability.
+The structural indicators are combined with equal weights. Equal weighting is a stated modeling assumption, not an evidence-based weighting.
 
-For example, corn, oats, and winter wheat are three different crops, but all belong to the Poaceae family.
+These indicators describe rotation composition and historical rainfall timing. They are not measured improvements in soil health, crop yield, or profitability.
 
-A rotation containing those crops has crop-species diversity without equivalent crop-family diversity.
-
-ROOTED will not assign numerical agronomic benefits without supporting evidence and a documented methodology.
+For example, corn, oats, and winter wheat are three different crops, but all belong to the Poaceae family. A rotation containing only those crops has crop-species diversity without crop-family diversity, and it scores lower on family alternation than a rotation that includes soybean.
 
 ### 3.5 Current Feasibility Limitations
 
-ROOTED uses Ames, Story County, Iowa, as its demonstration area.
+ROOTED uses Ames, Story County, Iowa, as its demonstration area. The demonstration coordinates (42.03, −93.62) do not identify a surveyed farm field, and individual farm characteristics have not been finalized.
 
-The climate-data team has collected historical NASA POWER data for the area.
-
-However, the characteristics of an individual demonstration farm have not yet been finalized.
-
-ROOTED can currently generate and structurally validate candidate crop sequences.
-
-It cannot yet confirm their agricultural feasibility without additional farm-specific information and crop-calendar constraints.
+ROOTED can generate, structurally validate, score, and rank candidate crop sequences. It cannot confirm their agricultural feasibility without farm-specific information and exact crop-calendar constraints.
 
 ---
 
@@ -243,52 +248,44 @@ It cannot yet confirm their agricultural feasibility without additional farm-spe
 
 ### 4.1 Initial Cover-Crop Option
 
-ROOTED currently includes cereal rye as an optional cover-crop practice.
+ROOTED includes cereal rye as an optional cover-crop practice.
 
-Cereal rye may provide winter soil cover, help reduce erosion, and take up residual soil nutrients.
-
-However, its suitability depends on establishment timing, termination timing, the following cash crop, and farm management practices.
+Cereal rye may provide winter soil cover, help reduce erosion, and take up residual soil nutrients. Its suitability depends on establishment timing, termination timing, the following cash crop, and farm management practices.
 
 ### 4.2 Optional Practice Representation
 
 ROOTED represents cover crops separately from its three-entry cash-crop sequences.
 
-A proposed practice contains the following fields:
+A proposed practice contains:
 
 | Field | Description |
 |---|---|
 | `cover_crop_id` | Identifier of the optional cover crop |
 | `after_year` | Position of the preceding cash-crop entry |
 | `before_year` | Position of the following cash-crop entry |
-| `feasibility_status` | Whether agricultural feasibility has been evaluated |
-
-For a three-entry cash-crop sequence, the initial implementation supports potential practice positions between entries 1–2 and 2–3.
+| `feasibility_status` | Always `not_evaluated` |
+| `caution` | Management caution, when one applies |
 
 The `after_year` and `before_year` fields describe positions in the crop sequence, not verified calendar-year planting dates.
 
-### 4.3 Feasibility Status
+`create_cover_crop_practice()` in `src/recommendations/rotation_generator.py` validates the cover-crop identifier and position. It does not determine whether the cover crop can be established or managed.
 
-The current implementation uses:
+### 4.3 Calendar Check and Caution
 
-`not_evaluated`
+`build_cover_crop_options(rotation, crops)` in `src/recommendations/scoring.py` builds the cover-crop options shown on each recommendation card:
 
-This indicates that a potential practice has been represented but its agricultural feasibility has not been established.
+| Rule | Basis |
+|---|---|
+| No cereal-rye slot directly before winter wheat | Both are fall-planted (`data/crops.csv`), so they would compete for the same planting window |
+| A slot directly before corn carries a caution to terminate rye at least 10 days before planting corn | Iowa State University guidance on seedling-disease and yield risk, as reported by Farm Progress (link in Section 1.3) |
 
-The function responsible for creating these records is:
+A rotation can have zero, one, or two cover-crop options.
 
-`create_cover_crop_practice()`
+### 4.4 Feasibility Status
 
-It is implemented in:
+Every option keeps `feasibility_status = "not_evaluated"`. The calendar check removes clearly conflicting slots; it does not establish that remaining slots will work on a particular farm.
 
-`src/recommendations/rotation_generator.py`
-
-The function validates the cover-crop identifier and its position within the sequence.
-
-It does not determine whether the cover crop can actually be established or managed.
-
-### 4.4 Requirements for Agricultural Feasibility
-
-Before ROOTED recommends cereal rye between two cash crops, the system must evaluate:
+Before ROOTED could recommend cereal rye between two cash crops, the system would need to evaluate:
 
 - Harvest timing of the preceding cash crop.
 - Available cover-crop establishment window.
@@ -297,12 +294,12 @@ Before ROOTED recommends cereal rye between two cash crops, the system must eval
 - Available equipment and management options.
 - Relevant soil and environmental conditions.
 
-Until these requirements can be evaluated, optional cover-crop practices must not be presented as confirmed feasible recommendations.
-
-**Source:**
+**Sources:**
 
 - USDA NRCS — Cereal Rye Cover Crop Fact Sheet:  
   https://www.nrcs.usda.gov/sites/default/files/2024-03/Cereal%20Rye%20Cover%20Crop%20Fact%20Sheet_0.pdf
+- Farm Progress — "Cereal rye cover crop could negatively affect corn":  
+  https://www.farmprogress.com/crops/cereal-rye-cover-crop-could-negatively-affect-corn
 
 ---
 
@@ -310,15 +307,25 @@ Until these requirements can be evaluated, optional cover-crop practices must no
 
 ### 5.1 NASA POWER
 
-ROOTED uses historical climate information from NASA POWER for the Ames, Story County, Iowa demonstration area.
+ROOTED uses historical daily data from the NASA POWER Daily API for the Ames, Story County, Iowa demonstration point (42.03, −93.62), 2005–2025. The data were retrieved and processed by the climate-data team.
 
-According to the climate-data team's progress report, the initial dataset includes daily temperature and precipitation data for 2005–2025.
+**Files used by the recommendation engine:**
 
-The team has also prepared May–September growing-season summaries.
+| File | Prepared by | Used for |
+|---|---|---|
+| `data/raw/nasa_power_ames_iowa_2005_2025.csv` | Climate-data team | Engine reads daily precipitation (PRECTOTCORR) to compute monthly totals, monthly percentiles, and the July–August stress year. The file is read, never modified. |
+| `data/processed/ames_climate_scenarios.csv` | Climate-data team | Dry, typical, and wet representative seasons |
 
-Additional seasonal summaries are being considered to account for crops growing outside the summer period, including winter wheat and cereal rye.
+**Scenarios:**
 
-Dry, typical, and wet historical climate scenarios are under development.
+| Scenario | Year | Selection rule | Prepared by |
+|---|---|---|---|
+| Dry | 2022 | May–Sep precipitation closest to the 25th percentile | Climate-data team |
+| Typical | 2009 | Closest to the median | Climate-data team |
+| Wet | 2025 | Closest to the 75th percentile | Climate-data team |
+| July–August dry | 2013 | Lowest combined July + August precipitation on record (50.9 mm) | Recommendation engine, from the raw daily file |
+
+Scenarios are historical replays, not forecasts. 2013 is a stress test, not a probability-weighted scenario.
 
 **Source:**
 
@@ -327,140 +334,114 @@ Dry, typical, and wet historical climate scenarios are under development.
 
 ### 5.2 Environmental Variables
 
-The climate-data pipeline is expected to provide environmental information relevant to evaluating historical growing conditions.
+| Variable | NASA POWER parameter | Use in ROOTED | Important limitation |
+|---|---|---|---|
+| Precipitation | PRECTOTCORR (mm/day) | Monthly May–September totals; each month ranked against the same month in all 21 years; a month in the driest quarter (percentile ≤ 0.25) counts as dry | Rainfall does not equal plant-available soil water; monthly totals hide timing within the month |
+| Temperature | T2M (°C) | Displayed as scenario context (season average and anomaly) | Not used in scoring; heat stress is not evaluated |
+| Evapotranspiration energy flux | EVPTRNS (MJ/m²/day) | Displayed as scenario context only | Modeled estimate reported as energy, not water depth; not reference ET; not used in scoring |
 
-| Variable | Intended Use | Important Limitation |
-|---|---|---|
-| Temperature | Characterize historical thermal conditions | Does not independently establish crop suitability |
-| Precipitation | Characterize historical rainfall | Does not equal plant-available soil water |
-| ET-related energy flux | Characterize an energy-related environmental variable | Must not be treated as water depth without a justified conversion |
-| Seasonal climate summaries | Compare historical environmental conditions | Must cover periods relevant to the crops being evaluated |
-
-The exact parameter names, units, temporal aggregation methods, and missing-data conventions must be confirmed with the climate-data team before integration.
+Missing values (−999 or blank) stop the calculation in the engine; they are never filled in.
 
 ### 5.3 Evapotranspiration-Related Data and Unit Handling
 
-The climate-data team has identified an ET-related energy-flux variable reported in:
+EVPTRNS is reported in **MJ/m²/day**, an energy flux rather than a water depth. It is a modeled estimate of actual evapotranspiration, not a reference (potential) evapotranspiration, and therefore does not measure crop water demand.
 
-**MJ/m²/day**
-
-This represents energy per unit area per day rather than water depth.
-
-Precipitation, by contrast, may be expressed in millimeters.
-
-ROOTED must not directly subtract an energy-flux value from precipitation to calculate a water-balance indicator.
-
-The exact NASA POWER parameter and its physical interpretation must be confirmed before any conversion.
-
-A precipitation-minus-evapotranspiration indicator may only be calculated after verifying the variable definition and using a documented method to express the relevant quantities in compatible units.
-
-Until then, the ET-related energy flux must remain a separate environmental variable.
+ROOTED does not subtract it from precipitation and does not use it in scoring. A precipitation-minus-ET indicator would require a verified reference-ET source and a documented unit conversion.
 
 ### 5.4 Spatial and Temporal Limitations
 
-NASA POWER provides gridded meteorological estimates rather than direct measurements taken at an individual demonstration farm.
+NASA POWER provides gridded estimates (approximately 50 km resolution) rather than direct measurements at an individual farm.
 
-These estimates are useful for understanding historical regional environmental conditions but should not be presented as precise field-level observations.
+These estimates support comparisons of historical regional conditions but should not be presented as field-level observations.
 
-Historical climate summaries also do not independently predict future crop yields or establish the suitability of individual rotations.
+Each scenario is a single historical year and carries that year's specific conditions; for example, the typical year (2009) had an unusually cool summer.
 
-ROOTED will use the environmental data as supporting context for its evaluation framework, subject to the availability of validated inputs.
+Historical climate summaries do not predict future crop yields or establish the suitability of individual rotations.
 
 ---
 
 ## 6. Limitations and Data Gaps
 
-ROOTED's initial crop library and recommendation engine have several important limitations.
-
 ### 6.1 Farm-Specific Information
 
-Although Ames, Iowa, has been selected as the demonstration area, the characteristics of an individual farm have not yet been finalized.
+The characteristics of an individual farm have not been finalized. The engine accepts a current rotation but still lacks:
 
-The engine still requires information about:
-
-- Existing crop rotation.
 - Soil characteristics and drainage.
 - Irrigation availability.
 - Equipment and management capabilities.
 - Crop preferences and restrictions.
 - Market access.
 
-### 6.2 Crop Timing
+### 6.2 Soil Data
 
-The crop database currently uses broad seasonal categories rather than exact planting and harvest dates.
+`data/processed/ames_soil_profile.json` lists texture, pH, organic matter, drainage class, and available water capacity, all currently empty. The intended source is the USDA NRCS Web Soil Survey; values have not been retrieved or verified.
 
-Therefore, generated three-entry sequences are not verified planting schedules.
+The engine reports soil status as `none`, `partial`, or `complete`, never fills in missing values, and does not use soil in scoring.
 
-This is particularly important for winter wheat and optional cereal rye practices.
+### 6.3 Crop Timing
 
-### 6.3 Agricultural Feasibility
+The crop database uses broad seasonal categories rather than exact planting and harvest dates, and drought-sensitive months are typical-season assumptions (Section 2.2). Generated sequences are not verified planting schedules.
 
-The current engine validates crop classifications and rotation structure.
+### 6.4 Agricultural Feasibility
 
-It does not yet establish field-level agricultural feasibility.
+The engine validates rotation structure, scores rotations, and checks cover-crop slots against the planting-season categories. It does not establish field-level agricultural feasibility.
 
-Farm-specific and crop-calendar constraints must be evaluated before a candidate can be presented as a feasible alternative.
+### 6.5 Environmental Data
 
-### 6.4 Environmental Data
+- NASA POWER data are gridded estimates, not field measurements.
+- Climate scoring uses monthly rainfall only; heat stress, soil moisture, and rainfall timing within a month are not evaluated.
+- Wet-weather effects (ponding, waterlogging) are not evaluated.
+- Water suitability is not scored.
 
-NASA POWER data provides gridded historical environmental estimates rather than direct field measurements.
+### 6.6 Soil Health and Agricultural Outcomes
 
-Climate scenario generation and validation of the ET-related variable are still in progress.
+Crop diversity and cover-crop inclusion do not establish improvements in soil health.
 
-The recommendation engine must preserve variable definitions and units and must not combine incompatible measurements.
-
-### 6.5 Soil Health and Agricultural Outcomes
-
-Crop diversity and cover-crop inclusion do not automatically establish improvements in soil health.
-
-ROOTED does not currently predict:
+ROOTED does not predict:
 
 - Crop yield.
 - Farm profitability.
 - Measured soil-health improvement.
 - Field-level water stress.
-- Exact future climate conditions.
+- Future climate conditions.
 
-Any future scoring system must distinguish between measurable indicators, qualitative considerations, and outcomes that cannot be established from the available data.
+### 6.7 Research and Citation Gaps
 
-### 6.6 Research and Citation Gaps
+Outstanding items before final submission:
 
-Some agricultural references currently point to institutional databases or resource homepages rather than individual publications.
-
-Before final submission, the team should:
-
-- Verify crop-specific claims against identifiable sources.
-- Record publication dates where available.
-- Confirm that agricultural guidance applies to the demonstration area.
-- Document the exact NASA POWER parameters used.
-- Record data units and processing methods.
-- Clearly identify any remaining assumptions.
+- Cite Iowa-specific heading and grain-fill timing for oats (candidate: USDA NASS Iowa Crop Progress reports).
+- Cite Iowa-specific heading and grain-fill timing for winter wheat.
+- Replace general resource-page links with specific publications where possible, and record publication dates.
+- Retrieve and verify soil properties for an agricultural point near the demonstration area, if soil is to be shown.
 
 ---
 
 ## 7. Implementation References
 
-The following files contain the current crop-library and recommendation-engine foundation.
-
 | File | Purpose |
 |---|---|
-| `data/crops.csv` | Initial crop library |
-| `src/recommendations/crop_data.py` | Crop database loading and validation |
+| `data/crops.csv` | Crop library |
+| `data/crop_critical_windows.csv` | Drought-sensitive month for each cash crop, with stage and source |
+| `data/raw/nasa_power_ames_iowa_2005_2025.csv` | NASA POWER daily data (climate-data team) |
+| `data/processed/ames_climate_scenarios.csv` | Dry, typical, wet scenarios (climate-data team) |
+| `data/processed/ames_soil_profile.json` | Soil fields (currently empty) |
+| `src/recommendations/crop_data.py` | Loads and validates crops and critical windows |
 | `src/recommendations/crop_rules.py` | Structural crop and cover-crop validation |
-| `src/recommendations/rotation_generator.py` | Candidate rotation generation and optional practice representation |
-| `src/recommendations/scoring.py` | Agreed recommendation-function interface; scoring pending |
-| `tests/test_recommendations.py` | Automated tests for crop and rotation logic |
-| `docs/methodology.md` | Recommendation-engine methodology and feasibility requirements |
+| `src/recommendations/rotation_generator.py` | Candidate generation, cycle grouping, cover-crop practice records |
+| `src/recommendations/climate_inputs.py` | Loads and validates the climate team's scenario file |
+| `src/recommendations/climate_timing.py` | Monthly rainfall totals, percentiles, stress year, and dry-month profiles |
+| `src/recommendations/scoring.py` | Scoring, ranking, recommendation cards, explanations, and `recommend_rotations()` |
+| `tests/test_recommendations.py` | Tests for crop, rotation, scoring, ranking, card, and explanation logic |
+| `tests/test_climate_inputs.py` | Tests for the scenario file, using the real file |
+| `tests/test_climate_timing.py` | Tests for monthly rainfall and critical windows, using the real NASA file |
+| `pytest.ini` | Test configuration |
+| `docs/methodology.md` | Full description of the method |
 
-The current implementation generates **64 structurally valid candidate cash-crop sequences** from four cash crops.
+The recommendation-engine interface is:
 
-It also supports representing optional cereal rye practices without asserting agricultural feasibility.
+`recommend_rotations(farm, scenarios, priorities, monthly_totals=None)`
 
-The agreed recommendation-engine interface is:
-
-`recommend_rotations(farm, scenarios, priorities)`
-
-The interface has been established, but farm-specific feasibility evaluation, scenario-based comparisons, and recommendation scoring remain future development tasks.
+It returns the farmer's baseline, three recommendation cards per scenario, full rankings for all 64 sequences, scenario context, soil status, and a list of limitations.
 
 ---
 
@@ -485,5 +466,13 @@ https://crops.extension.iastate.edu/
 **[5] NASA POWER**  
 Prediction Of Worldwide Energy Resources  
 https://power.larc.nasa.gov/
+
+**[6] Iowa State University Extension and Outreach**  
+"Influence of drought on corn and soybean," Integrated Crop Management, July 2017  
+https://crops.extension.iastate.edu/cropnews/2017/07/influence-drought-corn-and-soybean
+
+**[7] Farm Progress**  
+"Cereal rye cover crop could negatively affect corn" (reports Iowa State University guidance)  
+https://www.farmprogress.com/crops/cereal-rye-cover-crop-could-negatively-affect-corn
 
 ---
