@@ -1,0 +1,38 @@
+[
+  {
+    "variable": "Mean temperature (May–Sep)",
+    "definition": "NASA POWER T2M: mean daily air temperature at 2 m",
+    "units": "°C",
+    "resolution": "Daily values summarized to a May–Sep mean per year, 2005–2025",
+    "source": "NASA POWER Daily API, https://power.larc.nasa.gov/ (point 42.03, -93.62)",
+    "access_date": "Not recorded — Preethi to add",
+    "transformations": "Mean of daily values, May–Sep"
+  },
+  {
+    "variable": "Total precipitation (May–Sep)",
+    "definition": "NASA POWER PRECTOTCORR: corrected daily precipitation",
+    "units": "mm (daily mm/day summed)",
+    "resolution": "Daily values summarized to a May–Sep total per year",
+    "source": "NASA POWER Daily API",
+    "access_date": "Not recorded — Preethi to add",
+    "transformations": "Sum of daily values, May–Sep"
+  },
+  {
+    "variable": "ET energy flux (May–Sep)",
+    "definition": "NASA POWER EVPTRNS: evapotranspiration energy flux. NOT a water depth and not reference ET.",
+    "units": "MJ/m²/day (mean), MJ/m² (seasonal total)",
+    "resolution": "Daily values summarized per year",
+    "source": "NASA POWER Daily API",
+    "access_date": "Not recorded — Preethi to add",
+    "transformations": "Mean and sum of daily values, May–Sep"
+  },
+  {
+    "variable": "Anomalies",
+    "definition": "Difference from the 2005–2025 growing-season baseline",
+    "units": "°C, mm, %",
+    "resolution": "Per year",
+    "source": "Computed from the above",
+    "access_date": "n/a",
+    "transformations": "Season value minus 2005–2025 mean"
+  }
+]

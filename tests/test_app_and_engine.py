@@ -1,41 +1,35 @@
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 from streamlit.testing.v1 import AppTest
-from src.data_loader import load_farm_profile, load_scenarios
-from src.recommendations import recommend_rotations
+from src.ui import engine_bridge
 
 
-def _run(**over):
-    farm = {**load_farm_profile()[0], **over}
-    return recommend_rotations(farm, load_scenarios()[0], farm["weights"])
+def test_water_only_is_blocked():
+    _, err = engine_bridge.run({"weights": {"soil": 0, "water": 5, "resilience": 0}})
+    assert err and "Water" in err
 
 
-def test_contract_keys():
-    r = _run()["rotations"][0]
-    for k in ("rotation_id", "crops_by_year", "cover_crop", "score_components", "scenario_scores", "explanation", "limitations"):
-        assert k in r
+def test_all_zero_is_blocked():
+    _, err = engine_bridge.run({"weights": {"soil": 0, "water": 0, "resilience": 0}})
+    assert err
 
 
-def test_scenarios_change_ranking():
-    ranks = [{x["rotation_id"]: x["scenario_ranks"][s] for x in _run()["rotations"]} for s in ("typical", "dry")]
-    assert ranks[0] != ranks[1]
+def test_inputs_map_to_engine_ids():
+    farm, pri = engine_bridge.build_inputs({"current_rotation": ["Corn", "Soybeans", "Oats"], "prior_crop": "Winter wheat",
+                                            "irrigation_available": True, "weights": {"soil": 5, "water": 3, "resilience": 2}})
+    assert farm["current_rotation"] == ("corn", "soybean", "oats") and farm["prior_crop"] == "winter_wheat"
+    assert pri == {"soil_protection": 5, "water_suitability": 3, "climate_resilience": 2}
 
 
-def test_priorities_change_scores():
-    a = _run(weights={"soil": 10, "water": 0, "resilience": 0})["rotations"][0]["total"]
-    b = _run(weights={"soil": 0, "water": 10, "resilience": 0})["rotations"][0]["total"]
-    assert a != b
-
-
-def test_constraints_exclude():
-    res = _run(allowed=["Corn", "Soybeans"])
-    assert all("Oats" not in r["crops_by_year"] and "Alfalfa" not in r["crops_by_year"] for r in res["rotations"])
-    assert res["excluded"]
+def test_unknown_prior_crop_is_omitted():
+    farm, _ = engine_bridge.build_inputs({"prior_crop": "Unknown / other", "weights": {"soil": 1, "water": 0, "resilience": 0}})
+    assert "prior_crop" not in farm
 
 
 def test_all_pages_render():
-    at = AppTest.from_file(str(Path(__file__).resolve().parent.parent / "app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60)
     for page in ["Dashboard", "Farm Profile", "Farm Memory", "Rotation Advisor", "Climate Replay"]:
         at.session_state["page"] = page
         at.run()

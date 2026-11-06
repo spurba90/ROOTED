@@ -1,13 +1,6 @@
-git checkout --theirs requirements.txt
-python - <<'EOF'
-import re
-lines = [l.strip() for l in open("requirements.txt") if l.strip() and not l.startswith(("<", "=", ">"))]
-lines = [l for l in lines if not l.lower().startswith("streamlit")]
-have = {re.split(r"[<>=!~\[ ]", l)[0].lower() for l in lines}
-for pkg in ["plotly", "pandas", "numpy", "requests", "pytest"]:
-    if pkg not in have:
-        lines.append(pkg)
-lines.append("streamlit>=1.50")
-open("requirements.txt", "w").write("\n".join(sorted(set(lines), key=str.lower)) + "\n")
-EOF
-cat requirements.txt
+numpy
+pandas
+plotly
+pytest
+requests
+streamlit>=1.50

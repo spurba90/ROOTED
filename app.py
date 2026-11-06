@@ -10,7 +10,9 @@ st.markdown(f"<style>{(ROOT/'src'/'ui'/'style.css').read_text(encoding='utf-8')}
 if "page" not in st.session_state:
     st.session_state.page = "Dashboard"
 if "farm" not in st.session_state:
-    st.session_state.farm = load_farm_profile()[0]
+    _loaded = load_farm_profile()[0]
+    _keep = ("farm_id", "location", "county", "lat", "lon", "acres")
+    st.session_state.farm = {k: v for k, v in _loaded.items() if k in _keep and not isinstance(v, (dict, list))}
 
 NAV = [("Dashboard", "⌂"), ("Farm Profile", "🌱"), ("Farm Memory", "▥"), ("Rotation Advisor", "⟳"), ("Climate Replay", "☁")]
 with st.sidebar:
@@ -24,7 +26,7 @@ with st.sidebar:
         st.button(f"{icon}  {label}", key=f"nav_{label}", width="stretch", on_click=pages.go, args=(label,),
                   type="primary" if st.session_state.page == label else "secondary")
     st.markdown("<hr>", unsafe_allow_html=True)
-    f = st.session_state.farm
+    f = pages.ensure_farm()
     st.markdown(f"<div style='color:white;line-height:1.55;font-size:14px'>📍 <b>Demonstration Area</b><br>"
                 f"&nbsp;&nbsp;&nbsp;{f['location']}<br>&nbsp;&nbsp;&nbsp;{f['county']}</div>", unsafe_allow_html=True)
 
