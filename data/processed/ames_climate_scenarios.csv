@@ -1,0 +1,4 @@
+scenario_id,representative_year,season_start_month,season_end_month,avg_temp_c,total_precip_mm,temp_anomaly_c,precip_anomaly_mm,precip_anomaly_pct,avg_daily_et_mj_m2_day,total_et_energy_mj_m2
+dry,2022,5,9,21.83,401.12,0.8,-120.15,-23.05,3.35,511.81
+typical,2009,5,9,19.18,471.19,-1.85,-50.08,-9.61,4.85,741.9
+wet,2025,5,9,21.05,621.77,0.02,100.5,19.28,5.52,844.04

@@ -1,0 +1,26 @@
+{
+  "farm_id": "iowa_demo_01",
+  "location": {
+    "name": "Ames, Iowa",
+    "latitude": 42.03,
+    "longitude": -93.62
+  },
+  "soil": {
+    "texture": null,
+    "ph": null,
+    "organic_matter_pct": null,
+    "drainage_class": null,
+    "available_water_capacity": null
+  },
+  "source": {
+    "name": "USDA NRCS Web Soil Survey",
+    "url": "https://websoilsurvey.nrcs.usda.gov/app/",
+    "status": "not_yet_retrieved"
+  },
+  "limitations": [
+    "Demo coordinates do not identify a surveyed farm field.",
+    "Soil properties have not been verified for this location.",
+    "Missing soil values must not be treated as zero.",
+    "Soil-dependent recommendations require verified or farmer-provided inputs."
+  ]
+}
