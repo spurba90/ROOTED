@@ -275,68 +275,144 @@ def farm_memory():
 # -------------------------------------------------------- Rotation Advisor
 def _card(card, current=False):
     with st.container(border=True):
-        head = f"#{card.get('rank', '—')} · {crops_text(card)}"
+        rank_label = "Baseline" if current else f"#{card.get('rank', '—')}"
+        head = f"{rank_label} · {crops_text(card)}"
         st.subheader(("⭐ Your current rotation · " if current else "") + head)
-        m = st.columns(3)
-        m[0].metric("Relative score", num(card.get("score")))
-        m[1].metric("Rank", card.get("rank", "—"))
-        m[2].caption(f"Representative year: {card.get('representative_year', '—')}")
+
+        metrics = st.columns(3)
+        metrics[0].metric("Relative score", num(card.get("score")))
+        metrics[1].metric("Comparison", "Baseline" if current else card.get("rank", "—"))
+        metrics[2].caption(
+            f"Representative year: {card.get('representative_year', '—')}"
+        )
+
         tied = card.get("tied_with") or 0
-        if (tied if isinstance(tied, (int, float)) else len(tied)) > 0:
-            n = tied if isinstance(tied, (int, float)) else len(tied)
-            st.warning(f"Tied with {n} other(s) — order not meaningful.")
+        tie_count = tied if isinstance(tied, (int, float)) else len(tied)
+
+        if tie_count > 0:
+            st.warning(
+                f"Equal score with {tie_count} other distinct rotation cycle(s) "
+                "in the full candidate ranking. The order among tied options "
+                "is not meaningful."
+            )
+
         share = card.get("dropped_priority_share") or 0
         if share > 0:
             pct = share * 100 if share <= 1 else share
-            st.info(f"{pct:.0f}% of your priority weight (water) isn't scored yet.")
+            st.info(
+                f"{pct:.0f}% of your selected priority weight is for "
+                "water suitability, which is not scored yet."
+            )
+
         st.markdown("**Why this rotation**")
-        for line in card.get("why") or []:
+        explanations = card.get("why") or []
+
+        for line in explanations:
+            # The tie is already explained in the warning above.
+            if str(line).startswith("Tied with "):
+                continue
             st.write("• " + str(line))
-        exposed = (card.get("climate_component") or {}).get("exposed_crops")
+
+        climate = card.get("climate_component") or {}
+        exposed = climate.get("exposed_crops")
+
         if exposed:
-            st.write("**Crops exposed to climate stress this year:** " + ", ".join(label_crop(c) for c in exposed))
+            st.write(
+                "**Crops exposed to historical climate stress:** "
+                + ", ".join(label_crop(c) for c in exposed)
+            )
+
         covers = card.get("cover_crop_options") or []
         if covers:
-            st.markdown("**Optional cover-crop practice**")
-            for o in covers:
-                if isinstance(o, dict):
-                    nm = o.get("name") or o.get("label") or o.get("cover_crop") or o.get("id") or "Cover crop"
-                    st.write(f"• {nm}" + (f" — ⚠️ {o['caution']}" if o.get("caution") else ""))
+            st.markdown("**Optional cover-crop practices**")
+            for option in covers:
+                if isinstance(option, dict):
+                    name = (
+                        option.get("name")
+                        or option.get("label")
+                        or option.get("cover_crop")
+                        or option.get("id")
+                        or "Cover crop"
+                    )
+                    caution = option.get("caution")
+                    st.write(
+                        f"• {name}" + (f" — ⚠️ {caution}" if caution else "")
+                    )
                 else:
-                    st.write(f"• {o}")
+                    st.write(f"• {option}")
+
         with st.expander("Score details"):
-         weights = card.get("effective_weights") or {}
+            weights = card.get("effective_weights") or {}
 
-    if isinstance(weights, dict) and weights:
-        st.markdown("**Effective scoring weights**")
-        for name, value in weights.items():
-            st.write(f"• {name.replace('_', ' ').title()}: {num(value, 2)}")
-    else:
-        st.caption("Detailed scoring weights are not available.")
+            st.markdown("**Effective scoring weights**")
+            if isinstance(weights, dict) and weights:
+                for name, value in weights.items():
+                    st.write(
+                        f"• {name.replace('_', ' ').title()}: {num(value, 2)}"
+                    )
+            else:
+                st.caption("Detailed scoring weights are not available.")
 
-    st.caption(
-        "Scores are relative comparisons based on the criteria "
-        "supported by the recommendation engine."
-    )
+            st.markdown("**Scored components**")
 
+            soil_proxy = card.get("structural_soil_proxy")
+            if soil_proxy is not None:
+                st.write(
+                    f"• Structural soil-protection proxy: {num(soil_proxy, 2)}"
+                )
+                st.caption(
+                    "This is a rotation-structure heuristic, not a measured "
+                    "soil-health result."
+                )
+
+            climate_value = climate.get("value")
+            if climate_value is not None:
+                st.write(
+                    f"• Historical climate-resilience component: "
+                    f"{num(climate_value, 2)}"
+                )
+
+            unavailable = card.get("unavailable_components") or []
+            if unavailable:
+                names = ", ".join(
+                    name.replace("_", " ") for name in unavailable
+                )
+                st.caption(f"Components not included in this score: {names}.")
+
+            st.caption(
+                "Scores are relative comparisons within the selected "
+                "historical scenario. They are not yield, profit, or "
+                "measured soil-health predictions."
+            )
 
 def _baseline(base, scn, farm):
     st.markdown("### Your current rotation")
 
-    # Select the requested scenario when the baseline is scenario-specific.
-    b = base.get(scn, base) if isinstance(base, dict) else {}
+    if not isinstance(base, dict):
+        base = {}
+
+    # The engine stores scenario-specific baseline scores here.
+    scenario_scores = base.get("scenario_scores") or {}
+
+    if isinstance(scenario_scores, dict) and scn in scenario_scores:
+        b = scenario_scores[scn]
+    else:
+        # Support the older scenario-specific baseline structure too.
+        b = base.get(scn, base)
 
     if not isinstance(b, dict):
         b = {}
 
-    # Use the engine's crop sequence when available.
-    crops = b.get("crops_by_year") or b.get("rotation") or []
+    # Prefer the scenario result's rotation, then the top-level baseline,
+    # and finally the saved Farm Profile rotation.
+    crops = (
+        b.get("crops_by_year")
+        or b.get("rotation")
+        or base.get("rotation")
+        or farm.get("current_rotation")
+        or []
+    )
 
-    # Fall back to the rotation saved in the Farm Profile.
-    if not crops:
-        crops = farm.get("current_rotation") or []
-
-    # Build a display-friendly card.
     display_card = dict(b)
     display_card["crops_by_year"] = crops
 
@@ -356,7 +432,6 @@ def _baseline(base, scn, farm):
             "No current rotation is available. "
             "Please enter your three-year rotation in Farm Profile."
         )
-
 
 
 def rotation_advisor():
