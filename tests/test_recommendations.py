@@ -1177,7 +1177,7 @@ def test_soil_status_none_partial_complete():
     assert none["used_in_score"] is False
 
 
-def test_real_soil_profile_is_empty():
+def test_real_soil_profile_contains_retrieved_usda_values():
     import json
 
     with open("data/processed/ames_soil_profile.json") as file:
@@ -1185,7 +1185,17 @@ def test_real_soil_profile_is_empty():
 
     result = prepare_soil_factors(profile)
 
-    assert result["soil_data_status"] == "none"
+    assert result["soil_data_status"] == "complete"
+    assert result["soil_data_available"] is True
+    assert result["used_in_score"] is False
+
+    assert result["values"]["texture"] == "Loam"
+    assert result["values"]["ph"] == 6.2
+    assert result["values"]["organic_matter_pct"] == 3.5
+    assert result["values"]["drainage_class"] == "Well drained"
+    assert result["values"]["available_water_capacity"] == 0.21
+
+    assert result["missing_fields"] == []
 
 
 
