@@ -402,56 +402,223 @@ def rotation_advisor():
 # ----------------------------------------------------------- Climate Replay
 def climate_replay():
     f = ensure_farm()
-    title("Climate Replay", "Re-score the same rotations under historical dry, typical, wet and 2013 conditions.")
+    title(
+        "Climate Replay",
+        "Re-score the same rotations under historical dry, typical, wet and 2013 conditions."
+    )
+
     res, err = engine_bridge.run(f)
     if err:
         st.error(err)
         return
+
+    # ---------------------------------------------------------
+    # Scenario context
+    # ---------------------------------------------------------
     ctx = res.get("scenario_context") or {}
-    rows = [{"Scenario": SCN_LABEL.get(k, k), "Year": v.get("year"), "Rainfall": v.get("rainfall"),
-             "Dry months": str(v.get("dry_months")), "Source": v.get("source")} for k, v in ctx.items() if isinstance(v, dict)]
+    rows = []
+
+    month_names = [
+        "January", "February", "March", "April",
+        "May", "June", "July", "August",
+        "September", "October", "November", "December"
+    ]
+
+    for scenario_id, details in ctx.items():
+        if not isinstance(details, dict):
+            continue
+
+        year = details.get("representative_year")
+
+        if scenario_id == "jul_aug_dry":
+            rainfall = details.get("jul_aug_precip_mm")
+            rainfall_period = "July–August"
+        else:
+            rainfall = details.get("total_precip_mm")
+            rainfall_period = "May–September"
+
+        dry_months = details.get("dry_months") or []
+        dry_month_labels = [
+            month_names[m - 1]
+            for m in dry_months
+            if isinstance(m, int) and 1 <= m <= 12
+        ]
+
+        rows.append({
+            "Scenario": SCN_LABEL.get(scenario_id, scenario_id),
+            "Representative year": year if year is not None else "—",
+            "Rainfall period": rainfall_period,
+            "Rainfall (mm)": num(rainfall, 1),
+            "Dry months": (
+                ", ".join(dry_month_labels)
+                if dry_month_labels
+                else "Not specified"
+            ),
+            "Source": details.get("source") or "Not specified",
+        })
+
     if rows:
         st.markdown("#### Scenarios replayed")
-        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
-        st.caption("2013 stress test: driest July–August on record. A historical replay, not a forecast.")
+        st.dataframe(
+            pd.DataFrame(rows),
+            width="stretch",
+            hide_index=True
+        )
+        st.caption(
+            "The 2013 stress test identifies the year with the lowest "
+            "combined July–August rainfall. This is a historical replay, "
+            "not a forecast."
+        )
+
+    # ---------------------------------------------------------
+    # Rotation replay results
+    # ---------------------------------------------------------
     df = pd.DataFrame(res.get("climate_replay") or [])
+
     if df.empty:
         st.warning("No replay data returned.")
         return
-    rep = df["repeats_crop"] if "repeats_crop" in df else False
-    cur = df["is_current_rotation"] if "is_current_rotation" in df else False
-    df = df[(~rep.astype(bool)) | cur.astype(bool)] if not isinstance(rep, bool) else df
+
+    # The engine returns crop IDs in the "cycle" field.
+    # Convert them into farmer-friendly rotation names.
+    def rotation_name(row):
+        cycle = row.get("cycle")
+
+        if isinstance(cycle, (list, tuple)):
+            return " → ".join(label_crop(crop) for crop in cycle)
+
+        # Fallback for outputs that contain only the cycle key.
+        cycle_key = row.get("cycle_key")
+        if cycle_key:
+            return " → ".join(
+                label_crop(crop)
+                for crop in str(cycle_key).split("-")
+            )
+
+        return "Rotation unavailable"
+
+    df["Rotation"] = df.apply(rotation_name, axis=1)
+
+    # Hide rotations that repeat a crop, except the farmer's
+    # current rotation.
+    if "repeats_crop" in df.columns and "is_current_rotation" in df.columns:
+        repeats = df["repeats_crop"].fillna(False).astype(bool)
+        current = df["is_current_rotation"].fillna(False).astype(bool)
+        df = df[(~repeats) | current].copy()
+
+    # ---------------------------------------------------------
+    # Comparison table
+    # ---------------------------------------------------------
+    current_rotation = (
+        df["is_current_rotation"].fillna(False).astype(bool)
+        if "is_current_rotation" in df.columns
+        else pd.Series(False, index=df.index)
+    )
+
     out = pd.DataFrame({
-        "Rotation": df["rotation_id"].map(lambda r: " → ".join(label_crop(x) for x in str(r).split("-"))) if "rotation_id" in df else "",
-        "Your current?": df["is_current_rotation"].map({True: "⭐ yes", False: ""}) if "is_current_rotation" in df else "",
-        "Best rank": df.get("best_rank"), "Worst rank": df.get("worst_rank"),
-        "Max regret": df.get("max_regret"),
-        "Worst scenario": [("—" if (mr == 0 or mr is None) else SCN_LABEL.get(s, s))
-                           for mr, s in zip(df.get("max_regret", [None] * len(df)), df.get("max_regret_scenario", [None] * len(df)))]})
+        "Rotation": df["Rotation"],
+        "Your current?": current_rotation.map({
+            True: "⭐ Yes",
+            False: ""
+        }),
+        "Best rank": df["best_rank"] if "best_rank" in df else "—",
+        "Worst rank": df["worst_rank"] if "worst_rank" in df else "—",
+        "Max regret": df["max_regret"] if "max_regret" in df else "—",
+        "Worst scenario": [
+            (
+                "—"
+                if pd.isna(regret) or regret == 0
+                else SCN_LABEL.get(scenario, scenario)
+            )
+            for regret, scenario in zip(
+                df["max_regret"] if "max_regret" in df else [None] * len(df),
+                df["max_regret_scenario"] if "max_regret_scenario" in df else [None] * len(df)
+            )
+        ],
+    })
+
     st.markdown("#### How each rotation holds up across scenarios")
-    st.dataframe(out.sort_values(["Worst rank", "Best rank"]), width="stretch", hide_index=True)
-    st.caption("Regret = how far a rotation's relative score falls below the best option in a scenario. "
-               "Rotations that repeat last season's crop are hidden, except your own.")
+    st.dataframe(
+        out.sort_values(["Worst rank", "Best rank"]),
+        width="stretch",
+        hide_index=True
+    )
+
+    st.caption(
+        "Regret = how far a rotation's relative score falls below the best "
+        "option in a scenario. Rotations that repeat last season's crop "
+        "are hidden, except your own."
+    )
+
+    # ---------------------------------------------------------
+    # Rank chart
+    # ---------------------------------------------------------
     try:
         longrows = []
-        for _, r in df.iterrows():
-            for s, rk in (r.get("ranks") or {}).items():
-                longrows.append({"Rotation": " → ".join(label_crop(x) for x in str(r["rotation_id"]).split("-")),
-                                 "Scenario": SCN_LABEL.get(s, s), "Rank": rk})
+
+        for _, row in df.iterrows():
+            ranks = row.get("ranks") or {}
+
+            if not isinstance(ranks, dict):
+                continue
+
+            for scenario_id, rank in ranks.items():
+                longrows.append({
+                    "Rotation": row["Rotation"],
+                    "Scenario": SCN_LABEL.get(scenario_id, scenario_id),
+                    "Rank": rank,
+                })
+
         lr = pd.DataFrame(longrows)
-        top = df.sort_values("best_rank")["rotation_id"].head(6).tolist()
-        keep = set(top) | set(df.loc[df["is_current_rotation"].astype(bool), "rotation_id"]) if "is_current_rotation" in df else set(top)
-        names = {" → ".join(label_crop(x) for x in str(r).split("-")) for r in keep}
-        lr = lr[lr["Rotation"].isin(names)]
+
         if not lr.empty:
-            fig = px.line(lr, x="Scenario", y="Rank", color="Rotation", markers=True)
-            fig.update_yaxes(autorange="reversed", dtick=1)
-            st.plotly_chart(fig, width="stretch")
+            top_rotations = (
+                df.sort_values("best_rank")["Rotation"]
+                .head(6)
+                .tolist()
+            )
+
+            current_names = df.loc[
+                current_rotation,
+                "Rotation"
+            ].tolist()
+
+            keep_names = set(top_rotations) | set(current_names)
+            lr = lr[lr["Rotation"].isin(keep_names)]
+
+            if not lr.empty:
+                fig = px.line(
+                    lr,
+                    x="Scenario",
+                    y="Rank",
+                    color="Rotation",
+                    markers=True,
+                )
+                fig.update_yaxes(autorange="reversed", dtick=1)
+                st.plotly_chart(fig, width="stretch")
+
     except Exception:
         st.caption("Rank chart unavailable for this output format.")
+
+    # ---------------------------------------------------------
+    # Limitations and navigation
+    # ---------------------------------------------------------
     with st.expander("Uncertainty notes", expanded=True):
-        st.write("• Replay is a historical stress test, not a forecast of future weather.")
-        st.write("• Scores are relative scores, not predicted yields, profits or soil-health changes.")
-        st.write("• Climate inputs are gridded estimates, not measurements on one field.")
-        st.write("• Soil, tile drainage, irrigation and water suitability are not scored yet.")
-    st.button("Back to Rotation Advisor", on_click=go, args=("Rotation Advisor",))
+        st.write(
+            "• Replay is a historical stress test, not a forecast of future weather."
+        )
+        st.write(
+            "• Scores are relative scores, not predicted yields, profits or soil-health changes."
+        )
+        st.write(
+            "• Climate inputs are gridded estimates, not measurements on one field."
+        )
+        st.write(
+            "• Soil, tile drainage, irrigation and water suitability are not scored yet."
+        )
+
+    st.button(
+        "Back to Rotation Advisor",
+        on_click=go,
+        args=("Rotation Advisor",)
+    )
