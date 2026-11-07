@@ -147,13 +147,96 @@ def farm_profile():
               "water": w[1].slider("Water suitability (not scored yet)", 0, 10, int(p["weights"]["water"])),
               "resilience": w[2].slider("Climate resilience", 0, 10, int(p["weights"]["resilience"]))}
         ok = st.form_submit_button("Save Farm Profile", type="primary")
-    if ok:
-        st.session_state.farm = {**p, "farm_name": name, "acres": acres, "soil": soil, "drainage": drain,
+        if ok:
+          st.session_state.farm = {**p, "farm_name": name, "acres": acres, "soil": soil, "drainage": drain,
                                  "tile_drained": tile, "soil_notes": notes, "prior_crop": prior,
                                  "current_rotation": cur, "irrigation_available": irr, "weights": ws}
         st.success("Farm profile saved for this session.")
-    with st.expander("Saved profile (JSON)"):
+
+    # USDA mapped soil information for the Ames demonstration area
+    st.markdown("### USDA mapped soil profile")
+    st.caption(
+        "This is a separate reference profile for the Ames demonstration location. "
+        "It does not replace your field-specific soil answers above."
+    )
+
+    usda_profile = engine_bridge.load_usda_soil_metadata()
+
+    if not usda_profile:
+        st.warning("USDA soil profile is currently unavailable.")
+    else:
+        usda_soil = usda_profile.get("soil", {})
+        usda_source = usda_profile.get("source", {})
+        usda_location = usda_profile.get("location", {})
+
+        with st.container(border=True):
+            st.markdown(
+                f"**Mapped soil unit:** "
+                f"{usda_source.get('map_unit_name', 'Not available')}"
+            )
+
+            st.caption(
+                f"Location: {usda_location.get('name', 'Ames, Iowa')} · "
+                f"Dominant component: "
+                f"{usda_source.get('component_name', 'Not available')} "
+                f"({usda_source.get('component_percentage', 'Not available')}%)"
+            )
+
+            soil_cols = st.columns(3)
+            soil_cols[0].metric(
+                "Texture", usda_soil.get("texture") or "Not available"
+            )
+            soil_cols[1].metric(
+                "pH", usda_soil.get("ph") if usda_soil.get("ph") is not None else "Not available"
+            )
+            soil_cols[2].metric(
+                "Organic matter",
+                f"{usda_soil['organic_matter_pct']}%"
+                if usda_soil.get("organic_matter_pct") is not None
+                else "Not available",
+            )
+
+            soil_cols = st.columns(2)
+            soil_cols[0].metric(
+                "Drainage", usda_soil.get("drainage_class") or "Not available"
+            )
+            soil_cols[1].metric(
+                "Available water capacity (cm/cm)",
+                usda_soil.get("available_water_capacity")
+                if usda_soil.get("available_water_capacity") is not None
+                else "Not available",
+            )
+
+            st.caption(
+                f"Surface horizon: {usda_source.get('surface_horizon', 'Not available')} · "
+                f"Depth: {usda_source.get('surface_depth_cm', 'Not available')} cm"
+            )
+
+            st.markdown(
+                f"**Source:** {usda_source.get('name', 'USDA NRCS Soil Data Access')}"
+            )
+            source_url = usda_source.get("url")
+            if source_url:
+                st.markdown(f"[View USDA Soil Data Access]({source_url})")
+
+            st.info(
+                "These are representative mapped soil estimates, not measurements "
+                "from an individual farm field. Available water capacity describes "
+                "the soil's capacity to hold plant-available water; it is not "
+                "current soil moisture."
+            )
+
+            limitations = usda_profile.get("limitations", [])
+            if limitations:
+                with st.expander("USDA data limitations"):
+                    for limitation in limitations:
+                        st.markdown(f"- {limitation}")
+
+with st.expander("Saved profile (JSON)"):
+    if "farm" in st.session_state:
         st.json(st.session_state.farm)
+    else:
+        st.info("No saved farm profile yet. Save your profile above.")
 
 
 # -------------------------------------------------------------- Farm Memory
