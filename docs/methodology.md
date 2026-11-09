@@ -303,7 +303,7 @@ For each scenario, a crop-year is **exposed** if the crop's drought-sensitive mo
 **Climate score = 1 − (exposed rotation years) / 3**
 
 - 1.0 means no crop in the rotation had its sensitive month in the driest quarter of 2005–2025 in that year.
-- Wet months are not penalized. Monthly totals cannot show ponding or waterlogging, and soil drainage data are unavailable.
+- Wet months are not penalized. Monthly totals cannot show ponding or waterlogging, and the engine does not evaluate those conditions using the mapped soil drainage estimate.
 
 With the current data, no crop is exposed in 2022, 2009, or 2025, so the climate score is the same for every rotation in those scenarios and their rankings are decided by rotation structure. In 2013, corn (July) and soybean (August) are exposed and the small grains are not, so the ranking changes.
 
@@ -346,7 +346,7 @@ ROOTED uses `pytest` (configured in `pytest.ini`). The automated tests cover:
 - Ranking, dense ranks, tie counts, and card screening.
 - Calendar-aware cover-crop options and the rye-before-corn caution.
 - Explanation wording, including the absence of outcome claims.
-- Soil-data status, including the real (empty) Ames soil profile.
+- Soil-data status, including the retrieved USDA mapped Ames soil profile and its field-level limitations.
 
 Climate and scenario tests use the real project files. Error-handling tests break a temporary copy of a real file; the originals are never changed. A small number of arithmetic and validation tests use hand-typed input values to check calculations; these values are not presented as Ames data.
 
@@ -364,7 +364,7 @@ These tests verify software behavior and consistency with the documented method.
 - NASA POWER data are gridded estimates (~50 km), not field measurements.
 - Wet-weather effects (ponding, waterlogging) are not evaluated.
 - Water suitability is not scored.
-- Soil data are not available for the demo location and are not used in scoring.
+- USDA mapped soil data are available for the demo location as representative estimates. They are displayed for context but are not used in scoring.
 - Cover-crop options are checked only against the crop calendar; farm-specific feasibility is not evaluated.
 - Economics, markets, equipment, pests, disease, and nitrogen effects are not modeled.
 

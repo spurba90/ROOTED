@@ -374,7 +374,7 @@ The characteristics of an individual farm have not been finalized. The engine ac
 
 ### 6.2 Soil Data
 
-`data/processed/ames_soil_profile.json` lists texture, pH, organic matter, drainage class, and available water capacity, all currently empty. The intended source is the USDA NRCS Web Soil Survey; values have not been retrieved or verified.
+`data/processed/ames_soil_profile.json` contains a retrieved USDA NRCS Soil Data Access profile for the Ames demonstration location. It includes representative mapped values for texture, pH, organic matter, drainage class, and available water capacity. These are estimates for the dominant Clarion soil component and surface horizon, not verified measurements from an individual farm field.
 
 The engine reports soil status as `none`, `partial`, or `complete`, never fills in missing values, and does not use soil in scoring.
 
@@ -424,7 +424,7 @@ Outstanding items before final submission:
 | `data/crop_critical_windows.csv` | Drought-sensitive month for each cash crop, with stage and source |
 | `data/raw/nasa_power_ames_iowa_2005_2025.csv` | NASA POWER daily data (climate-data team) |
 | `data/processed/ames_climate_scenarios.csv` | Dry, typical, wet scenarios (climate-data team) |
-| `data/processed/ames_soil_profile.json` | Soil fields (currently empty) |
+| `data/processed/ames_soil_profile.json` | Retrieved USDA mapped soil profile for the Ames demonstration location; representative estimates, not field measurements |
 | `src/recommendations/crop_data.py` | Loads and validates crops and critical windows |
 | `src/recommendations/crop_rules.py` | Structural crop and cover-crop validation |
 | `src/recommendations/rotation_generator.py` | Candidate generation, cycle grouping, cover-crop practice records |
