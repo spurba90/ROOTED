@@ -329,6 +329,28 @@ If the farmer supplies a current rotation, it is scored under every scenario wit
 
 Explanation text describes model mechanics only: number of crops, repeated crops in the cycle, crop-family transitions, which crops were exposed in which year, ties, and unscored priority weight. An automated test checks that explanations never contain outcome claims such as "soil health", "improve", "optimal", or "yield".
 
+### 8.7 Machine-Learning Decision (No-Go)
+
+A machine-learning component was considered at the project's November 7
+decision gate and was not used.
+
+Reasons:
+
+- The plan's decision gate states that if labels are defined by rainfall
+  thresholds, the simpler statistical method should be used instead. ROOTED's
+  "dry month" labels are defined by a rainfall threshold (driest quarter of
+  2005–2025), so the gate points to the statistical method.
+- The record contains 21 growing seasons, which is too few for time-aware
+  validation of a trained model.
+- There are no measured outcome labels (such as field yields or soil-health
+  measurements) that a model could learn from without inventing data.
+- A transparent rule-based method lets every score be traced to its inputs
+  and explained to farmers.
+
+ROOTED therefore uses percentile ranking of historical rainfall and
+documented crop-timing rules. No claim is made that machine learning would
+or would not improve the recommendations.
+
 ---
 
 ## 9. Testing and Validation

@@ -1395,3 +1395,131 @@ def test_irrigation_must_be_true_false_or_missing():
             load_climate_scenarios(),
             REAL_PRIORITIES,
         )
+
+
+
+
+# ---------------------------------------------------------------
+# Edge cases: unusual or incomplete farmer inputs
+# ---------------------------------------------------------------
+
+def test_current_rotation_must_have_three_crops():
+    with pytest.raises(ValueError, match="exactly three"):
+        recommend_rotations(
+            {"current_rotation": ("corn", "soybean")},
+            load_climate_scenarios(),
+            REAL_PRIORITIES,
+        )
+
+
+def test_current_rotation_cannot_include_cover_crop():
+    with pytest.raises(ValueError, match="non-cash crop"):
+        recommend_rotations(
+            {"current_rotation": ("corn", "cereal_rye", "soybean")},
+            load_climate_scenarios(),
+            REAL_PRIORITIES,
+        )
+
+
+def test_climate_only_priority_scores_on_climate_alone():
+    result = recommend_rotations(
+        {},
+        load_climate_scenarios(),
+        {"soil_protection": 0, "water_suitability": 0, "climate_resilience": 1},
+    )
+
+    for cards in result["recommendations"].values():
+        assert len(cards) == 3
+        for card in cards:
+            assert card["score_basis"] == ["climate_resilience"]
+
+
+def test_soil_only_priority_ignores_climate_differences():
+    result = recommend_rotations(
+        {},
+        load_climate_scenarios(),
+        {"soil_protection": 1, "water_suitability": 0, "climate_resilience": 0},
+    )
+
+    typical = [c["rotation_id"] for c in result["recommendations"]["typical"]]
+    stress = [c["rotation_id"] for c in result["recommendations"]["jul_aug_dry"]]
+
+    assert typical == stress
+    for card in result["recommendations"]["jul_aug_dry"]:
+        assert card["score_basis"] == ["soil_protection"]
+
+
+@pytest.mark.parametrize("prior_crop", ["corn", "soybean", "oats", "winter_wheat"])
+def test_every_prior_crop_still_gives_three_cards(prior_crop):
+    result = recommend_rotations(
+        {"prior_crop": prior_crop},
+        load_climate_scenarios(),
+        REAL_PRIORITIES,
+    )
+
+    for cards in result["recommendations"].values():
+        assert len(cards) == 3
+        assert all(card["rotation"][0] != prior_crop for card in cards)
+
+
+def test_prior_crop_and_current_rotation_together():
+    result = recommend_rotations(
+        {"prior_crop": "corn", "current_rotation": ("corn", "soybean", "corn")},
+        load_climate_scenarios(),
+        REAL_PRIORITIES,
+    )
+
+    assert result["baseline"]["rotation_id"] == "corn-soybean-corn"
+    assert result["prior_crop"] == "corn"
+
+
+def test_partial_farmer_soil_is_reported_and_does_not_change_scores():
+    without_soil = recommend_rotations({}, load_climate_scenarios(), REAL_PRIORITIES)
+    with_soil = recommend_rotations(
+        {"soil": {"texture": "Loam", "ph": None}},
+        load_climate_scenarios(),
+        REAL_PRIORITIES,
+    )
+
+    assert with_soil["soil_factors"]["soil_data_status"] == "partial"
+    assert "ph" in with_soil["soil_factors"]["missing_fields"]
+    assert with_soil["soil_factors"]["values"]["ph"] is None
+
+    for scenario_id in without_soil["recommendations"]:
+        before = [c["score"] for c in without_soil["recommendations"][scenario_id]]
+        after = [c["score"] for c in with_soil["recommendations"][scenario_id]]
+        assert before == after
+
+
+def test_irrigation_false_is_reported_and_does_not_change_scores():
+    result = recommend_rotations(
+        {"irrigation_available": False},
+        load_climate_scenarios(),
+        REAL_PRIORITIES,
+    )
+
+    assert result["irrigation"]["irrigation_available"] is False
+    assert result["irrigation"]["note"] == "Irrigation is not used in scoring."
+
+
+def test_farm_must_be_a_dictionary():
+    with pytest.raises(TypeError, match="farm must be a dictionary"):
+        recommend_rotations(None, load_climate_scenarios(), REAL_PRIORITIES)
+
+
+def test_non_numeric_priority_rejected():
+    with pytest.raises(TypeError, match="must be numeric"):
+        recommend_rotations(
+            {},
+            load_climate_scenarios(),
+            {"soil_protection": "high", "water_suitability": 0, "climate_resilience": 1},
+        )
+
+
+def test_all_zero_priorities_rejected_by_engine():
+    with pytest.raises(ValueError, match="greater than zero"):
+        recommend_rotations(
+            {},
+            load_climate_scenarios(),
+            {"soil_protection": 0, "water_suitability": 0, "climate_resilience": 0},
+        )
