@@ -1,4 +1,5 @@
 import base64
+import json
 from pathlib import Path
 import pandas as pd
 import plotly.express as px
@@ -467,11 +468,6 @@ def rotation_advisor():
     with st.expander("Limitations"):
         for l in res.get("limitations") or []:
             st.write("• " + str(l))
-    with st.expander("How to read these results"):
-        for l in res.get("method_notes") or []:
-            st.write("• " + str(l))
-    with st.expander("Developer: raw engine output"):
-        st.json(res, expanded=False)
 
 
 # ----------------------------------------------------------- Climate Replay
@@ -696,4 +692,165 @@ def climate_replay():
         "Back to Rotation Advisor",
         on_click=go,
         args=("Rotation Advisor",)
+    )
+
+
+# -------------------------------------------------------- Science & Sources
+def science_sources():
+    ensure_farm()
+    title(
+        "Science & Sources",
+        "Explore the environmental data, agricultural references, "
+        "and transparent methods behind ROOTED."
+    )
+
+    project_root = Path(__file__).resolve().parents[2]
+
+    data_sources_path = project_root / "docs" / "data_sources.md"
+    methodology_path = project_root / "docs" / "methodology.md"
+    provenance_path = project_root / "data" / "processed" / "provenance.json"
+    soil_path = project_root / "data" / "processed" / "ames_soil_profile.json"
+
+    sources_tab, methods_tab, nasa_tab, soil_tab = st.tabs([
+        "Data Sources",
+        "How ROOTED Works",
+        "NASA Data Provenance",
+        "USDA Soil Profile",
+    ])
+
+    with sources_tab:
+        st.markdown("### Agricultural data and references")
+        if data_sources_path.exists():
+            st.markdown(data_sources_path.read_text(encoding="utf-8"))
+        else:
+            st.error("The data sources documentation file could not be found.")
+
+    with methods_tab:
+        st.markdown("### Recommendation methodology")
+        if methodology_path.exists():
+            st.markdown(methodology_path.read_text(encoding="utf-8"))
+        else:
+            st.error("The methodology documentation file could not be found.")
+
+    with nasa_tab:
+        st.markdown("### NASA POWER climate data")
+        st.write(
+            "ROOTED uses historical, gridded NASA POWER data for the "
+            "Ames, Iowa demonstration coordinates. These values provide "
+            "regional climate context; they are not measurements from "
+            "an individual farm field."
+        )
+
+        if provenance_path.exists():
+            provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+
+            summary = pd.DataFrame([
+                {
+                    "Climate variable": item.get("variable", "—"),
+                    "Definition": item.get("definition", "—"),
+                    "Units": item.get("units", "—"),
+                    "Data access date": item.get("access_date", "Not recorded"),
+                }
+                for item in provenance
+            ])
+
+            st.dataframe(summary, width="stretch", hide_index=True)
+
+            st.warning(
+                "The NASA POWER retrieval date has not yet been recorded "
+                "in the project provenance file."
+            )
+
+            with st.expander("View processing details"):
+                for item in provenance:
+                    st.markdown(f"**{item.get('variable', 'Climate variable')}**")
+                    st.write(f"Source: {item.get('source', 'Not specified')}")
+                    st.write(f"Resolution: {item.get('resolution', 'Not specified')}")
+                    st.write(
+                        f"Transformation: {item.get('transformations', 'Not specified')}"
+                    )
+                    st.divider()
+        else:
+            st.error("The NASA provenance file could not be found.")
+
+        st.info(
+            "EVPTRNS represents evapotranspiration energy flux. It is not "
+            "a water-depth measurement or reference ET, and should not be "
+            "subtracted from precipitation in millimeters."
+        )
+
+        st.markdown("[NASA POWER data portal](https://power.larc.nasa.gov/)")
+
+    with soil_tab:
+        st.markdown("### USDA NRCS mapped soil profile")
+        st.write(
+            "This profile describes a mapped soil component near the Ames "
+            "demonstration coordinates. It is not a laboratory test or a "
+            "verified measurement from an individual farm field."
+        )
+
+        if soil_path.exists():
+            soil_data = json.loads(soil_path.read_text(encoding="utf-8"))
+            soil = soil_data.get("soil", {})
+            source = soil_data.get("source", {})
+            location = soil_data.get("location", {})
+
+            st.markdown("#### Demonstration location")
+            st.write(
+                f"{location.get('name', 'Ames, Iowa')} · "
+                f"{location.get('latitude', '—')}, "
+                f"{location.get('longitude', '—')}"
+            )
+
+            st.markdown("#### Mapped soil component")
+            st.write(f"**Map unit:** {source.get('map_unit_name', '—')}")
+            st.write(
+                f"**Dominant component:** {source.get('component_name', '—')} "
+                f"({source.get('component_percentage', '—')}% of map unit)"
+            )
+
+            st.markdown("#### Representative surface-soil values")
+            c1, c2, c3, c4 = st.columns(4)
+
+            c1.metric("Texture", soil.get("texture", "—"))
+            c2.metric("pH", soil.get("ph", "—"))
+            c3.metric(
+                "Organic matter",
+                f"{soil.get('organic_matter_pct', '—')}%"
+            )
+            c4.metric(
+                "Available water capacity",
+                f"{soil.get('available_water_capacity', '—')} "
+                f"{source.get('awc_unit', 'cm/cm')}"
+            )
+
+            st.write(
+                f"**Drainage class:** {soil.get('drainage_class', '—')}"
+            )
+
+            depth = source.get("surface_depth_cm", [])
+            if len(depth) == 2:
+                st.caption(
+                    f"Surface horizon: {source.get('surface_horizon', '—')} · "
+                    f"Depth: {depth[0]}–{depth[1]} cm"
+                )
+
+            source_url = source.get("url")
+            if source_url:
+                st.markdown(
+                    f"**Source:** [{source.get('name', 'USDA NRCS Soil Data Access')}]"
+                    f"({source_url})"
+                )
+
+            st.markdown("#### Important limitations")
+            for limitation in soil_data.get("limitations", []):
+                st.write(f"• {limitation}")
+        else:
+            st.error("The USDA soil profile file could not be found.")
+
+    st.divider()
+    st.caption(
+        "ROOTED is an exploratory decision-support prototype. "
+        "Its relative scores are not yield, profit, or measured "
+        "soil-health predictions."
     )

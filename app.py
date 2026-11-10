@@ -14,7 +14,7 @@ if "farm" not in st.session_state:
     _keep = ("farm_id", "location", "county", "lat", "lon", "acres")
     st.session_state.farm = {k: v for k, v in _loaded.items() if k in _keep and not isinstance(v, (dict, list))}
 
-NAV = [("Dashboard", "⌂"), ("Farm Profile", "🌱"), ("Farm Memory", "▥"), ("Rotation Advisor", "⟳"), ("Climate Replay", "☁")]
+NAV = [("Dashboard", "⌂"), ("Farm Profile", "🌱"), ("Farm Memory", "▥"), ("Rotation Advisor", "⟳"), ("Climate Replay", "☁"), ("Science & Sources", "ⓘ")]
 with st.sidebar:
     logo = ROOT / "assets" / "rooted_logo.svg"
     if logo.exists():
@@ -32,5 +32,6 @@ with st.sidebar:
 
 st.markdown("<div class='rooted-topline'>🌱 &nbsp; Smarter Decisions. Healthier Fields.</div>", unsafe_allow_html=True)
 {"Dashboard": pages.dashboard, "Farm Profile": pages.farm_profile, "Farm Memory": pages.farm_memory,
- "Rotation Advisor": pages.rotation_advisor, "Climate Replay": pages.climate_replay}[st.session_state.page]()
+ "Rotation Advisor": pages.rotation_advisor, "Climate Replay": pages.climate_replay,
+ "Science & Sources": pages.science_sources}[st.session_state.page]()
 st.markdown("<div style='text-align:center;color:#829183;font-size:12px;padding:12px'>ROOTED · Ames, Iowa demonstration prototype</div>", unsafe_allow_html=True)
