@@ -1,5 +1,6 @@
 import base64
 import json
+import textwrap
 from pathlib import Path
 import pandas as pd
 import plotly.express as px
@@ -152,7 +153,16 @@ def farm_profile():
           st.session_state.farm = {**p, "farm_name": name, "acres": acres, "soil": soil, "drainage": drain,
                                  "tile_drained": tile, "soil_notes": notes, "prior_crop": prior,
                                  "current_rotation": cur, "irrigation_available": irr, "weights": ws}
-        st.success("Farm profile saved for this session.")
+          st.session_state.farm_profile_saved = True
+
+    if st.session_state.get("farm_profile_saved", False):
+        st.success("Farm profile saved successfully for this session!")
+        st.button(
+            "Go to Rotation Advisor →",
+            type="primary",
+            on_click=go,
+            args=("Rotation Advisor",),
+        )
 
     # USDA mapped soil information for the Ames demonstration area
     st.markdown("### USDA mapped soil profile")
@@ -274,10 +284,12 @@ def farm_memory():
 
 
 # -------------------------------------------------------- Rotation Advisor
-def _card(card, current=False):
+def _card(card, current=False, best=False):
     with st.container(border=True):
         rank_label = "Baseline" if current else f"#{card.get('rank', '—')}"
         head = f"{rank_label} · {crops_text(card)}"
+        if best and not current:
+            st.success("⭐ Best-scoring option — tied for the highest rank")
         st.subheader(("⭐ Your current rotation · " if current else "") + head)
 
         metrics = st.columns(3)
@@ -453,12 +465,36 @@ def rotation_advisor():
         _baseline(res["baseline"], scn, f)
     else:
         st.caption("Enter a valid current rotation in Farm Profile to compare against it.")
-    st.markdown("### Alternatives")
+    col_title, col_info = st.columns([4, 1])
+
+    with col_title:
+        st.markdown("### Alternatives")
+
+    with col_info:
+        with st.popover("ⓘ How rankings work"):
+            st.markdown(
+                """
+                **How to read these rankings**
+
+                - Higher scores indicate a stronger match for the selected scenario and farm priorities.
+                - Recommendations with equal scores share the same rank.
+                - The order of recommendations with the same rank does not indicate a preference.
+                - Rankings are relative to the selected scenario.
+
+                **Important:** These scores are decision-support indicators, not predictions of crop yield, profit, or measured soil health.
+                """
+            )
     cards = (res.get("recommendations") or {}).get(scn) or []
     if not cards:
         st.warning("No recommendations returned for this scenario.")
-    for c in cards:
-        _card(c)
+    else:
+        best_rank = min(
+            (c.get("rank") for c in cards if c.get("rank") is not None),
+            default=None,
+        )
+        for c in cards:
+            is_best = best_rank is not None and c.get("rank") == best_rank
+            _card(c, best=is_best)
     soil = res.get("soil_factors") or {}
     if soil.get("soil_data_status") == "none":
         st.info("Soil data not available. Soil is not used in the score.")
@@ -853,4 +889,147 @@ def science_sources():
         "ROOTED is an exploratory decision-support prototype. "
         "Its relative scores are not yield, profit, or measured "
         "soil-health predictions."
+    )
+
+
+
+def our_team():
+    title(
+        "Meet the ROOTED Team",
+        "A team of computer science and data science graduates passionate about "
+        "using data to build climate-resilient solutions for agriculture."
+    )
+
+    st.markdown(
+        """
+        <div style="margin: 4px 0 24px 0;">
+            <p style="color:#718477; font-size:15px;">
+                Built for <b>NASA Space Apps Challenge</b> —
+                Field Shift: Adapting Farms with NASA Data.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    team = [
+        {
+            "name": "Dilpreet Kaur",
+            "role": "Application Development & Integration",
+            "initials": "DK",
+            "photo": "dilpreet.jpg",
+            "contributions": [
+                "Built the ROOTED Streamlit application and farmer-facing interface.",
+                "Developed Farm Profile, Farm Memory, Rotation Advisor, and Climate Replay.",
+                "Integrated climate data and the recommendation engine.",
+                "Led application testing, usability improvements, and deployment.",
+            ],
+            "linkedin": "https://www.linkedin.com/in/dilpreet-kaur-2a5b071b2/",
+        },
+        {
+            "name": "Simrat Purba",
+            "role": "Crop Rotation & Recommendation Logic",
+            "initials": "SP",
+            "photo": "simrat.jpg",
+            "contributions": [
+                "Developed crop and cover-crop feasibility rules.",
+                "Worked on feasible three-year crop rotations.",
+                "Developed soil-cover, diversity, and priority-weighted scoring logic.",
+                "Worked on climate replay, trade-off explanations, and uncertainty.",
+            ],
+            "linkedin": "https://www.linkedin.com/in/simrat-purba-93284a283/",
+        },
+        {
+            "name": "Preethi Sridhar",
+            "role": "Climate Data & NASA Integration",
+            "initials": "PS",
+            "photo": "preethi.jpg",
+            "contributions": [
+                "Worked with NASA POWER temperature, precipitation, and evapotranspiration data.",
+                "Prepared seasonal climate summaries and typical, dry, and wet scenarios.",
+                "Worked on soil-profile information and climate-data processing.",
+                "Documented data sources, units, resolution, and limitations.",
+            ],
+            "linkedin": "https://www.linkedin.com/in/psridhar02/",
+        },
+    ]
+
+    columns = st.columns(3)
+
+    for column, member in zip(columns, team):
+        with column:
+            with st.container(border=True):
+                photo_path = ASSETS / "team" / member["photo"]
+
+                if photo_path.exists():
+                    image_data = base64.b64encode(
+                        photo_path.read_bytes()
+                    ).decode("utf-8")
+                    image_type = (
+                        "image/png" if photo_path.suffix.lower() == ".png"
+                        else "image/jpeg"
+                    )
+                    photo_html = textwrap.dedent(f"""
+                        <img src="data:{image_type};base64,{image_data}"
+                             style="width:104px;height:104px;
+                             border-radius:50%;object-fit:cover;
+                             border:3px solid #b7cdbb;">
+                    """).strip()
+                else:
+                    photo_html = textwrap.dedent(f"""
+                        <div style="width:104px;height:104px;
+                            border-radius:50%;background:#e6efe7;
+                            color:#315c43;display:flex;
+                            align-items:center;justify-content:center;
+                            font-size:32px;font-weight:700;
+                            border:3px solid #b7cdbb;margin:0 auto;">
+                            {member["initials"]}
+                        </div>
+                    """).strip()
+
+                card_html = textwrap.dedent(f"""
+                    <div style="text-align:center;padding:10px 0 8px 0;">
+                        {photo_html}
+                        <h3 style="color:#243d2d;margin:12px 0 8px 0;">
+                            {member["name"]}
+                        </h3>
+                        <div style="
+                            display:inline-block;
+                            background:#b8dc82;
+                            color:#24452b;
+                            padding:5px 12px;
+                            border-radius:18px;
+                            font-size:12px;
+                            font-weight:600;
+                        ">
+                            {member["role"]}
+                        </div>
+                    </div>
+                """).strip()
+
+                st.markdown(card_html, unsafe_allow_html=True)
+                st.markdown("**Project contributions**")
+                for contribution in member["contributions"]:
+                    st.markdown(f"- {contribution}")
+
+                st.link_button(
+                    "View LinkedIn Profile ↗",
+                    member["linkedin"],
+                    width="stretch",
+                )
+
+    st.divider()
+
+    st.markdown(
+        """
+        <div style="text-align:center;padding:10px 0;">
+            <p style="color:#718477;">
+                ROOTED · NASA Space Apps Challenge · Ames, Iowa
+            </p>
+            <p style="color:#829183;font-size:13px;">
+                Smarter Decisions. Healthier Fields.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
